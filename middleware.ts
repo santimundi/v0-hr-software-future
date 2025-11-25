@@ -1,17 +1,22 @@
-// The environment variables are intermittently unavailable causing errors
-// Uncomment when you want to add real Supabase authentication
-
-/*
-import { updateSession } from "@/lib/supabase/middleware"
+import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+// This is a no-op middleware that just passes through all requests
+// Uncomment the Supabase auth code below when ready to add authentication
+
+export function middleware(request: NextRequest) {
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 }
-*/
 
-export {}
+/*
+// Supabase authentication middleware - uncomment when ready to use
+import { updateSession } from "@/lib/supabase/middleware"
+
+export async function middleware(request: NextRequest) {
+  return await updateSession(request)
+}
+*/
