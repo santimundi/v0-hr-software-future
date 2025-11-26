@@ -18,6 +18,9 @@ env/
 *.egg-info/
 dist/
 
+# Backend (Python) - keep local, exclude from repo
+backend/
+
 # Environment variables
 .env
 .env*.local
