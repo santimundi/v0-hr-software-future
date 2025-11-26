@@ -1,7 +1,0 @@
-{
-    "dependencies": ["."],
-    "graphs": {
-        "hr_agent": "./src/langgraph_test.py:graph"
-    },
-    "env": "./.env.local"
-}
