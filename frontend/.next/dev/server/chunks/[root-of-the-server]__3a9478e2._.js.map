@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/kamau/Documents/Work/HR_Agent/frontend/proxy.ts"],"sourcesContent":["import { NextResponse } from \"next/server\"\r\nimport type { NextRequest } from \"next/server\"\r\n\r\n// This is a no-op proxy that just passes through all requests\r\n// Uncomment the Supabase auth code below when ready to add authentication\r\n\r\nexport default function proxy(request: NextRequest) {\r\n  return NextResponse.next()\r\n}\r\n\r\nexport const config = {\r\n  matcher: [\"/((?!_next/static|_next/image|favicon.ico|.*\\\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)\"],\r\n}\r\n\r\n/*\r\n// Supabase authentication proxy - uncomment when ready to use\r\nimport { updateSession } from \"@/lib/supabase/middleware\"\r\n\r\nexport default async function proxy(request: NextRequest) {\r\n  return await updateSession(request)\r\n}\r\n*/\r\n"],"names":[],"mappings":";;;;;;AAAA;;AAMe,SAAS,MAAM,OAAoB;IAChD,OAAO,6QAAY,CAAC,IAAI;AAC1B;AAEO,MAAM,SAAS;IACpB,SAAS;QAAC;KAAoF;AAChG,EAEA;;;;;;;AAOA"}}]
-}

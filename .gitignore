@@ -18,6 +18,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Local env files
+.env*.local
+.env
 
 
 # TypeScript
@@ -51,9 +54,3 @@ dmypy.json
 *.swp
 *.swo
 *~
-
-#env files
-.env*.local
-.env
-
-*.md

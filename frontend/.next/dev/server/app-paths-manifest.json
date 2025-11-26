@@ -1,4 +1,0 @@
-{
-  "/(dashboard)/chat/page": "app/(dashboard)/chat/page.js",
-  "/(dashboard)/time-off/page": "app/(dashboard)/time-off/page.js"
-}
