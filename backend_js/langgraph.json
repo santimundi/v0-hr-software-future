@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "hr_agent": "./src/graphbuilder.ts:graph"
+  },
+  "env": "./.env.local"
+}
+

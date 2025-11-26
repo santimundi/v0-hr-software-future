@@ -27,7 +27,6 @@ logging.getLogger("langchain_mcp_adapters").setLevel(logging.WARNING)
 # -----------------------------
 # Module-level cached state
 # -----------------------------
-# Leading underscore = "internal/private to this module" convention.
 _client: Optional[MultiServerMCPClient] = None
 
 # Async context manager returned by: _client.session("supabase")

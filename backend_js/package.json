@@ -1,0 +1,39 @@
+{
+  "name": "hr-agent-backend-js",
+  "version": "0.1.0",
+  "description": "HR Agent Backend using LangGraph.js",
+  "type": "module",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "langgraph": "langgraph dev"
+  },
+  "keywords": [
+    "langgraph",
+    "langchain",
+    "hr-agent"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/core": "^1.1.0",
+    "@langchain/langgraph": "^1.0.2",
+    "@langchain/openai": "^1.1.3",
+    "@langchain/groq": "^1.0.2",
+    "@langchain/mcp-adapters": "^1.0.1",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
+
