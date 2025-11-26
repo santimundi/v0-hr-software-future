@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Bell, Search, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +25,12 @@ const roleLabels: Record<UserRole, { label: string; color: string }> = {
 
 export function TopBar() {
   const { role, setRole, currentUser } = useRole()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering dropdown after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-card px-4 lg:px-6">
@@ -45,58 +52,81 @@ export function TopBar() {
           <span className="sr-only">Notifications</span>
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 px-2">
-              <Badge className={roleLabels[role].color} variant="secondary">
-                {roleLabels[role].label}
-              </Badge>
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={currentUser.avatar || "/placeholder.svg"} alt={currentUser.name} />
-                <AvatarFallback>
-                  {currentUser.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden md:flex flex-col items-start">
-                <span className="text-sm font-medium">{currentUser.name}</span>
-                <span className="text-xs text-muted-foreground">{currentUser.title}</span>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Switch Role (Demo)</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setRole("employee")}>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-chart-2" />
-                <span>Employee</span>
-              </div>
-              {role === "employee" && <span className="ml-auto text-xs">✓</span>}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setRole("manager")}>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-chart-1" />
-                <span>Manager</span>
-              </div>
-              {role === "manager" && <span className="ml-auto text-xs">✓</span>}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setRole("hr-admin")}>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-chart-4" />
-                <span>HR Admin</span>
-              </div>
-              {role === "hr-admin" && <span className="ml-auto text-xs">✓</span>}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Role affects data access & UI
-            </DropdownMenuLabel>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {mounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2 px-2">
+                <Badge className={roleLabels[role].color} variant="secondary">
+                  {roleLabels[role].label}
+                </Badge>
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={currentUser.avatar || "/placeholder.svg"} alt={currentUser.name} />
+                  <AvatarFallback>
+                    {currentUser.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden md:flex flex-col items-start">
+                  <span className="text-sm font-medium">{currentUser.name}</span>
+                  <span className="text-xs text-muted-foreground">{currentUser.title}</span>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Switch Role (Demo)</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setRole("employee")}>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-2" />
+                  <span>Employee</span>
+                </div>
+                {role === "employee" && <span className="ml-auto text-xs">✓</span>}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setRole("manager")}>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-1" />
+                  <span>Manager</span>
+                </div>
+                {role === "manager" && <span className="ml-auto text-xs">✓</span>}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setRole("hr-admin")}>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-4" />
+                  <span>HR Admin</span>
+                </div>
+                {role === "hr-admin" && <span className="ml-auto text-xs">✓</span>}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                Role affects data access & UI
+              </DropdownMenuLabel>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          // Fallback during SSR to prevent hydration mismatch
+          <Button variant="ghost" className="flex items-center gap-2 px-2">
+            <Badge className={roleLabels[role].color} variant="secondary">
+              {roleLabels[role].label}
+            </Badge>
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={currentUser.avatar || "/placeholder.svg"} alt={currentUser.name} />
+              <AvatarFallback>
+                {currentUser.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="hidden md:flex flex-col items-start">
+              <span className="text-sm font-medium">{currentUser.name}</span>
+              <span className="text-xs text-muted-foreground">{currentUser.title}</span>
+            </div>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        )}
       </div>
     </header>
   )

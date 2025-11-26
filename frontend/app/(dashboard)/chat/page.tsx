@@ -31,7 +31,10 @@ import { Toggle } from "@/components/ui/toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useRole } from "@/lib/role-context"
-import { conversations, type Conversation, type Message, type ActionCard } from "@/lib/mock-data"
+import { conversations, type Conversation, type Message, type ActionCard, type Source } from "@/lib/mock-data"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
+import { getUserId } from "@/lib/user-id"
 
 const sourceIcons: Record<string, typeof FileText> = {
   policy: FileText,
@@ -63,6 +66,7 @@ const scopeOptions = [
 
 function ChatPageContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { role } = useRole()
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(conversations[0])
   const [input, setInput] = useState("")
@@ -70,6 +74,7 @@ function ChatPageContent() {
   const [actionDrawerOpen, setActionDrawerOpen] = useState(false)
   const [selectedAction, setSelectedAction] = useState<ActionCard | null>(null)
   const [showSafetySettings, setShowSafetySettings] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -97,6 +102,191 @@ function ChatPageContent() {
   const handleActionClick = (action: ActionCard) => {
     setSelectedAction(action)
     setActionDrawerOpen(true)
+  }
+
+  /**
+   * Parses the backend response and extracts structured data
+   * Handles both plain text and structured JSON responses
+   */
+  const parseBackendResponse = (responseData: any): Partial<Message> => {
+    try {
+      // If data is a string, try to parse it as JSON first
+      let parsedData = responseData.data
+      
+      if (typeof parsedData === 'string') {
+        // Try to parse as JSON
+        try {
+          parsedData = JSON.parse(parsedData)
+        } catch {
+          // If parsing fails, treat as plain text
+          return {
+            content: parsedData,
+          }
+        }
+      }
+
+      // If parsedData is an object, extract structured fields
+      if (typeof parsedData === 'object' && parsedData !== null) {
+        const message: Partial<Message> = {
+          content: parsedData.content || parsedData.text || parsedData.message || JSON.stringify(parsedData),
+        }
+
+        // Extract sources if present
+        if (parsedData.sources && Array.isArray(parsedData.sources)) {
+          message.sources = parsedData.sources.map((source: any) => ({
+            type: source.type || 'document',
+            title: source.title || source.name || 'Unknown Source',
+            version: source.version,
+          })) as Source[]
+        }
+
+        // Extract dataUsed if present
+        if (parsedData.dataUsed && Array.isArray(parsedData.dataUsed)) {
+          message.dataUsed = parsedData.dataUsed
+        } else if (parsedData.data_used && Array.isArray(parsedData.data_used)) {
+          message.dataUsed = parsedData.data_used
+        }
+
+        // Extract confidence if present
+        if (parsedData.confidence && ['low', 'medium', 'high'].includes(parsedData.confidence)) {
+          message.confidence = parsedData.confidence as 'low' | 'medium' | 'high'
+        }
+
+        // Extract actions if present
+        if (parsedData.actions && Array.isArray(parsedData.actions)) {
+          message.actions = parsedData.actions.map((action: any, index: number) => ({
+            id: action.id || `action-${Date.now()}-${index}`,
+            type: action.type || 'message',
+            title: action.title || action.name || 'Action',
+            description: action.description || action.desc || '',
+          })) as ActionCard[]
+        }
+
+        return message
+      }
+
+      // Fallback: treat as plain text
+      return {
+        content: String(parsedData),
+      }
+    } catch (error) {
+      // Fallback to plain text
+      return {
+        content: typeof responseData.data === 'string' 
+          ? responseData.data 
+          : JSON.stringify(responseData.data) || "Sorry, I couldn't process your request.",
+      }
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return
+
+    const query = input.trim()
+    setInput("")
+    setIsLoading(true)
+
+    try {
+      // Get current user from Supabase
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Use Supabase user ID if authenticated (persistent across sessions)
+      // Otherwise use persistent localStorage ID (same ID across time for unauthenticated users)
+      const userId = user?.id || getUserId()
+
+      // Create or get active conversation
+      let conversation = activeConversation
+      if (!conversation) {
+        // Create a new conversation
+        const newConversation: Conversation = {
+          id: Date.now().toString(),
+          title: query.substring(0, 50),
+          lastMessage: query,
+          timestamp: new Date().toISOString(),
+          pinned: false,
+          messages: [],
+        }
+        setActiveConversation(newConversation)
+        conversation = newConversation
+      }
+
+      // Add user message to conversation
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: query,
+        timestamp: new Date().toISOString(),
+      }
+
+      const updatedMessages = [...(conversation.messages || []), userMessage]
+      setActiveConversation({
+        ...conversation,
+        messages: updatedMessages,
+        lastMessage: query,
+      })
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      
+      const response = await fetch(`${backendUrl}/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          query: query,
+        }),
+      }).catch((fetchError) => {
+        throw new Error(
+          `Unable to connect to backend server. Please make sure the backend is running on port 8000.`
+        )
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      // Parse the backend response to extract structured data
+      const parsedResponse = parseBackendResponse(data)
+      
+      // Add AI response to conversation with parsed data
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: parsedResponse.content || "Sorry, I couldn't process your request.",
+        timestamp: new Date().toISOString(),
+        ...(parsedResponse.sources && { sources: parsedResponse.sources }),
+        ...(parsedResponse.dataUsed && { dataUsed: parsedResponse.dataUsed }),
+        ...(parsedResponse.confidence && { confidence: parsedResponse.confidence }),
+        ...(parsedResponse.actions && { actions: parsedResponse.actions }),
+      }
+
+      setActiveConversation({
+        ...conversation,
+        messages: [...updatedMessages, aiMessage],
+        lastMessage: query,
+      })
+    } catch (error) {
+      // Add error message to conversation
+      if (activeConversation) {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: error instanceof Error ? error.message : "An error occurred while processing your request.",
+          timestamp: new Date().toISOString(),
+        }
+        setActiveConversation({
+          ...activeConversation,
+          messages: [...(activeConversation.messages || []), errorMessage],
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const renderMessage = (message: Message) => {
@@ -336,17 +526,28 @@ function ChatPageContent() {
                     <Textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSendMessage()
+                        }
+                      }}
                       placeholder="Ask HR Copilot anything..."
                       className="min-h-[60px] resize-none pr-12"
+                      disabled={isLoading}
                     />
                     <Button variant="ghost" size="icon" className="absolute right-2 bottom-2 h-8 w-8">
                       <Paperclip className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Button className="gap-2">
+                    <Button 
+                      className="gap-2" 
+                      onClick={handleSendMessage}
+                      disabled={isLoading || !input.trim()}
+                    >
                       <Send className="h-4 w-4" />
-                      Ask
+                      {isLoading ? "Sending..." : "Ask"}
                     </Button>
                     <Button variant="outline" size="sm" className="text-xs bg-transparent">
                       Draft
