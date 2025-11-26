@@ -16,9 +16,10 @@ export const StateAnnotation = Annotation.Root({
   }),
   
   /**
-   * User ID for conversation tracking
+   * Employee ID for conversation tracking (constant, guaranteed to remain the same)
    */
-  user_id: Annotation<string>({
+  employee_id: Annotation<string>({
+    reducer: (x: string, y: string) => y || x,
     default: () => "",
   }),
   
@@ -26,6 +27,15 @@ export const StateAnnotation = Annotation.Root({
    * User query string
    */
   user_query: Annotation<string>({
+    reducer: (x: string, y: string) => y || x,
+    default: () => "",
+  }),
+  
+  /**
+   * Job title/level (e.g., "Senior Software Engineer", "HR Director")
+   */
+  job_title: Annotation<string>({
+    reducer: (x: string, y: string) => y || x,
     default: () => "",
   }),
   
@@ -33,6 +43,7 @@ export const StateAnnotation = Annotation.Root({
    * Conversation ID for checkpointing
    */
   conversation_id: Annotation<string>({
+    reducer: (x: string, y: string) => y || x,
     default: () => "",
   }),
 });

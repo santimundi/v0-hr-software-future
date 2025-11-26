@@ -73,10 +73,14 @@ async function shutdown() {
 app.post("/query", async (req: Request, res: Response) => {
   try {
     // Extract JSON payload
-    const { query, user_id } = req.body;
+    const { query, employee_id, job_title } = req.body;
 
     if (!query) {
       return res.status(400).json({ error: "query is required" });
+    }
+
+    if (!employee_id) {
+      return res.status(400).json({ error: "employee_id is required" });
     }
 
     // Reuse the cached graph (DO NOT rebuild per request)
@@ -84,10 +88,10 @@ app.post("/query", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Graph not initialized" });
     }
 
-    // LangGraph config (thread_id commonly used for per-user/per-conversation memory)
+    // LangGraph config (thread_id uses employee_id for per-employee conversation memory)
     const config = {
       configurable: {
-        thread_id: user_id || "default",
+        thread_id: employee_id,
       },
     };
 
@@ -95,7 +99,8 @@ app.post("/query", async (req: Request, res: Response) => {
     const response = await graph.invoke(
       {
         messages: [new HumanMessage({ content: query })],
-        user_id: user_id || "",
+        employee_id: employee_id,
+        job_title: job_title || "",
       },
       config
     );

@@ -26,16 +26,29 @@ export class HRNode {
    * Maps from Python execute method
    */
   async execute(state: State, config?: RunnableConfig): Promise<Partial<State>> {
-    const userQuery = state.messages[state.messages.length - 1]?.content || "";
+    const lastMessage = state.messages[state.messages.length - 1];
+    const userQuery = typeof lastMessage?.content === "string" 
+      ? lastMessage.content 
+      : typeof lastMessage?.content === "object" && Array.isArray(lastMessage.content)
+      ? lastMessage.content.map(c => typeof c === "string" ? c : c.text || "").join("")
+      : "";
+    const jobTitle = state.job_title || "";
+    const employeeId = state.employee_id || "";
 
     // Get actual tools (async function that uses cached tools)
     const tools = await getMcpTools();
     const llmWithTools = this.llm.bindTools(tools);
 
+    // Include job title and employee ID in user query context for authorization decisions
+    let enhancedQuery = userQuery;
+    if (jobTitle) {
+      enhancedQuery = `[User Job Title: ${jobTitle}, Employee ID: ${employeeId}]\n\n${userQuery}`;
+    }
+
     // Build messages with system prompt and conversation history
     const messages = [
       new SystemMessage({ content: PROMPT }),
-      new HumanMessage({ content: userQuery }),
+      new HumanMessage({ content: enhancedQuery }),
       ...state.messages,
     ];
 
@@ -45,6 +58,7 @@ export class HRNode {
     return {
       messages: [response],
       user_query: userQuery,
+      job_title: jobTitle,
     };
   }
 }

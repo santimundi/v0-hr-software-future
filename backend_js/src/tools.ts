@@ -108,7 +108,8 @@ export async function initMcp(serverName: string = "supabase"): Promise<void> {
     _tools = await _client.getTools();
 
     // ToolNode is what LangGraph uses to execute tool calls
-    _toolNode = new ToolNode(_tools);
+    // handleToolErrors=true will catch tool errors and convert them to tool messages
+    _toolNode = new ToolNode(_tools, { handleToolErrors: true });
 
     console.log(`MCP initialized with persistent session (server=${serverName})`);
   } catch (error) {

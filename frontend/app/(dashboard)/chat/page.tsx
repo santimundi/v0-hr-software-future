@@ -34,7 +34,6 @@ import { useRole } from "@/lib/role-context"
 import { conversations, type Conversation, type Message, type ActionCard, type Source } from "@/lib/mock-data"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { getUserId } from "@/lib/user-id"
 
 const sourceIcons: Record<string, typeof FileText> = {
   policy: FileText,
@@ -67,7 +66,7 @@ const scopeOptions = [
 function ChatPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { role } = useRole()
+  const { role, currentUser } = useRole()
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(conversations[0])
   const [input, setInput] = useState("")
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["all"])
@@ -187,13 +186,8 @@ function ChatPageContent() {
     setIsLoading(true)
 
     try {
-      // Get current user from Supabase
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      // Use Supabase user ID if authenticated (persistent across sessions)
-      // Otherwise use persistent localStorage ID (same ID across time for unauthenticated users)
-      const userId = user?.id || getUserId()
+      // Use the current user's employee ID (constant, guaranteed to remain the same)
+      const employeeId = currentUser.id
 
       // Create or get active conversation
       let conversation = activeConversation
@@ -234,8 +228,9 @@ function ChatPageContent() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: userId,
+          employee_id: employeeId,
           query: query,
+          job_title: currentUser.title,
         }),
       }).catch((fetchError) => {
         throw new Error(
