@@ -113,42 +113,9 @@ export interface Benefit {
 // Mock Users
 export const users: User[] = [
   {
-    id: "emp-001",
+    id: "EMP-001",
     name: "Sarah Chen",
     email: "sarah.chen@company.com",
-    role: "employee",
-    department: "Engineering",
-    location: "San Francisco",
-    manager: "Michael Torres",
-    managerId: "mgr-001",
-    avatar: "/professional-woman-avatar.png",
-    startDate: "2022-03-15",
-    contractType: "Full-time",
-    salary: 125000,
-    title: "Senior Software Engineer",
-    skills: ["TypeScript", "React", "Node.js", "AWS"],
-  },
-  {
-    id: "mgr-001",
-    name: "Michael Torres",
-    email: "michael.torres@company.com",
-    role: "manager",
-    department: "Engineering",
-    location: "San Francisco",
-    manager: "Jennifer Walsh",
-    managerId: "hr-001",
-    avatar: "/professional-man-avatar.png",
-    startDate: "2020-06-01",
-    contractType: "Full-time",
-    salary: 175000,
-    title: "Engineering Manager",
-    skills: ["Leadership", "Agile", "System Design", "Team Building"],
-    directReports: ["emp-001", "emp-002", "emp-003"],
-  },
-  {
-    id: "hr-001",
-    name: "Jennifer Walsh",
-    email: "jennifer.walsh@company.com",
     role: "hr-admin",
     department: "Human Resources",
     location: "New York",
@@ -156,8 +123,41 @@ export const users: User[] = [
     startDate: "2019-01-10",
     contractType: "Full-time",
     salary: 145000,
-    title: "HR Director",
+    title: "VP of People",
     skills: ["HR Strategy", "Compliance", "Benefits Administration", "Employee Relations"],
+  },
+  {
+    id: "EMP-002",
+    name: "Alex Rivera",
+    email: "alex.rivera@company.com",
+    role: "manager",
+    department: "Engineering",
+    location: "San Francisco",
+    manager: "Sarah Chen",
+    managerId: "EMP-001",
+    avatar: "/professional-man-avatar.png",
+    startDate: "2020-06-01",
+    contractType: "Full-time",
+    salary: 175000,
+    title: "Engineering Manager",
+    skills: ["Leadership", "Agile", "System Design", "Team Building"],
+    directReports: ["EMP-005"],
+  },
+  {
+    id: "EMP-005",
+    name: "Emma Johnson",
+    email: "emma.johnson@company.com",
+    role: "employee",
+    department: "Engineering",
+    location: "San Francisco",
+    manager: "Alex Rivera",
+    managerId: "EMP-002",
+    avatar: "/professional-woman-avatar.png",
+    startDate: "2022-03-15",
+    contractType: "Full-time",
+    salary: 125000,
+    title: "Senior Software Engineer",
+    skills: ["TypeScript", "React", "Node.js", "AWS"],
   },
 ]
 
@@ -297,7 +297,7 @@ export const documents: Document[] = [
     type: "Contract",
     uploadDate: "2022-03-15",
     tags: ["legal", "employment", "contract"],
-    userId: "emp-001",
+    userId: "EMP-005",
     aiSummary:
       "Standard full-time employment contract with 90-day probation period, standard benefits package, and at-will employment terms.",
     keyFields: {
@@ -313,7 +313,7 @@ export const documents: Document[] = [
     type: "Payslip",
     uploadDate: "2024-10-01",
     tags: ["payroll", "compensation", "monthly"],
-    userId: "emp-001",
+    userId: "EMP-005",
     aiSummary:
       "October 2024 payslip showing regular salary payment with standard deductions for taxes, benefits, and 401(k) contributions.",
     keyFields: {
@@ -329,7 +329,7 @@ export const documents: Document[] = [
     type: "Performance",
     uploadDate: "2024-01-15",
     tags: ["performance", "review", "annual"],
-    userId: "emp-001",
+    userId: "EMP-005",
     aiSummary:
       "Annual performance review showing strong technical contributions, excellent collaboration, and recommendation for expanded responsibilities.",
     keyFields: {
@@ -345,7 +345,7 @@ export const documents: Document[] = [
     type: "Benefits",
     uploadDate: "2024-01-05",
     tags: ["benefits", "enrollment", "annual"],
-    userId: "emp-001",
+    userId: "EMP-005",
     aiSummary:
       "Annual benefits enrollment confirming selection of premium health plan, dental, vision, and 6% 401(k) contribution.",
     keyFields: {
@@ -361,7 +361,7 @@ export const documents: Document[] = [
     type: "Certificate",
     uploadDate: "2024-06-20",
     tags: ["training", "certification", "aws"],
-    userId: "emp-001",
+    userId: "EMP-005",
     aiSummary: "AWS Solutions Architect Associate certification obtained through company-sponsored training program.",
     keyFields: {
       Certification: "AWS Solutions Architect Associate",
@@ -376,7 +376,7 @@ export const documents: Document[] = [
 export const timeOffRequests: TimeOffRequest[] = [
   {
     id: "pto-001",
-    userId: "emp-001",
+    userId: "EMP-005",
     type: "annual",
     startDate: "2024-12-23",
     endDate: "2024-12-27",
@@ -386,7 +386,7 @@ export const timeOffRequests: TimeOffRequest[] = [
   },
   {
     id: "pto-002",
-    userId: "emp-001",
+    userId: "EMP-005",
     type: "sick",
     startDate: "2024-11-05",
     endDate: "2024-11-05",
@@ -396,7 +396,7 @@ export const timeOffRequests: TimeOffRequest[] = [
   },
   {
     id: "pto-003",
-    userId: "emp-001",
+    userId: "EMP-005",
     type: "annual",
     startDate: "2025-01-20",
     endDate: "2025-01-24",
@@ -410,8 +410,8 @@ export const timeOffRequests: TimeOffRequest[] = [
 export const auditEvents: AuditEvent[] = [
   {
     id: "audit-001",
-    userId: "emp-001",
-    userName: "Sarah Chen",
+    userId: "EMP-005",
+    userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
     query: "How many vacation days do I have left?",
@@ -424,8 +424,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-002",
-    userId: "emp-001",
-    userName: "Sarah Chen",
+    userId: "EMP-005",
+    userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
     query: "What is my manager's salary?",
@@ -438,8 +438,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-003",
-    userId: "mgr-001",
-    userName: "Michael Torres",
+    userId: "EMP-002",
+    userName: "Alex Rivera",
     userRole: "manager",
     action: "query",
     query: "Show team PTO for December",
@@ -452,8 +452,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-004",
-    userId: "hr-001",
-    userName: "Jennifer Walsh",
+    userId: "EMP-001",
+    userName: "Sarah Chen",
     userRole: "hr-admin",
     action: "document_generation",
     query: "Generate employment verification letter for Sarah Chen",
@@ -466,11 +466,11 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-005",
-    userId: "mgr-001",
-    userName: "Michael Torres",
+    userId: "EMP-002",
+    userName: "Alex Rivera",
     userRole: "manager",
     action: "approval",
-    query: "Approve PTO request for Sarah Chen",
+    query: "Approve PTO request for Emma Johnson",
     sourcesAccessed: ["HRIS: Time off request", "Policy: Annual Leave v3.2"],
     citationsGenerated: ["Request ID: PTO-001"],
     redactionsApplied: [],
@@ -480,8 +480,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-006",
-    userId: "hr-001",
-    userName: "Jennifer Walsh",
+    userId: "EMP-001",
+    userName: "Sarah Chen",
     userRole: "hr-admin",
     action: "policy_update",
     query: "Update Annual Leave Policy to v3.2",
@@ -494,8 +494,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-007",
-    userId: "emp-001",
-    userName: "Sarah Chen",
+    userId: "EMP-005",
+    userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
     query: "Summarize my performance review",
@@ -508,8 +508,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-008",
-    userId: "hr-001",
-    userName: "Jennifer Walsh",
+    userId: "EMP-001",
+    userName: "Sarah Chen",
     userRole: "hr-admin",
     action: "bulk_export",
     query: "Export all employee time off balances",
@@ -649,8 +649,40 @@ export const conversations: Conversation[] = [
 ]
 
 // HRIS Data
-export const hrisData = {
-  "emp-001": {
+export const hrisData: Record<string, {
+  timeOffBalance: {
+    annual: number;
+    sick: number;
+    personal: number;
+  };
+  tenure: string;
+  nextReview: string;
+  lastRaise: string;
+  performanceRating: string;
+}> = {
+  "EMP-001": {
+    timeOffBalance: {
+      annual: 20,
+      sick: 10,
+      personal: 5,
+    },
+    tenure: "5 years, 10 months",
+    nextReview: "2025-01-10",
+    lastRaise: "2024-01-01",
+    performanceRating: "Exceeds Expectations",
+  },
+  "EMP-002": {
+    timeOffBalance: {
+      annual: 18,
+      sick: 10,
+      personal: 3,
+    },
+    tenure: "4 years, 5 months",
+    nextReview: "2025-06-01",
+    lastRaise: "2024-06-01",
+    performanceRating: "Exceeds Expectations",
+  },
+  "EMP-005": {
     timeOffBalance: {
       annual: 12,
       sick: 8,

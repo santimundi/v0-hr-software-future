@@ -34,15 +34,16 @@ export class HRNode {
       : "";
     const jobTitle = state.job_title || "";
     const employeeId = state.employee_id || "";
+    const employeeName = state.employee_name || "";
 
     // Get actual tools (async function that uses cached tools)
     const tools = await getMcpTools();
     const llmWithTools = this.llm.bindTools(tools);
 
-    // Include job title and employee ID in user query context for authorization decisions
+    // Include job title, employee ID, and employee name in user query context for authorization decisions
     let enhancedQuery = userQuery;
     if (jobTitle) {
-      enhancedQuery = `[User Job Title: ${jobTitle}, Employee ID: ${employeeId}]\n\n${userQuery}`;
+      enhancedQuery = `[User Job Title: ${jobTitle}, Employee ID: ${employeeId}, Employee Name: ${employeeName}]\n\n${userQuery}`;
     }
 
     // Build messages with system prompt and conversation history

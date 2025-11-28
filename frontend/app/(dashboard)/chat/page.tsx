@@ -229,6 +229,7 @@ function ChatPageContent() {
         },
         body: JSON.stringify({
           employee_id: employeeId,
+          employee_name: currentUser.name,
           query: query,
           job_title: currentUser.title,
         }),

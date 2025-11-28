@@ -73,7 +73,7 @@ async function shutdown() {
 app.post("/query", async (req: Request, res: Response) => {
   try {
     // Extract JSON payload
-    const { query, employee_id, job_title } = req.body;
+    const { query, employee_id, employee_name, job_title } = req.body;
 
     if (!query) {
       return res.status(400).json({ error: "query is required" });
@@ -100,6 +100,7 @@ app.post("/query", async (req: Request, res: Response) => {
       {
         messages: [new HumanMessage({ content: query })],
         employee_id: employee_id,
+        employee_name: employee_name || "",
         job_title: job_title || "",
       },
       config

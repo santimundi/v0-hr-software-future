@@ -12,7 +12,7 @@ import Link from "next/link"
 
 export default function ProfilePage() {
   const { currentUser, role } = useRole()
-  const userData = hrisData["emp-001"]
+  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">

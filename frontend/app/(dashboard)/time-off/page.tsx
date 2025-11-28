@@ -38,8 +38,8 @@ const statusColors: Record<string, string> = {
 }
 
 export default function TimeOffPage() {
-  const { role } = useRole()
-  const userData = hrisData["emp-001"]
+  const { role, currentUser } = useRole()
+  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [dialogOpen, setDialogOpen] = useState(false)
 

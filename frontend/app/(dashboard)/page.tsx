@@ -49,8 +49,8 @@ const dataAccessScope = {
 
 export default function HomePage() {
   const { role, currentUser } = useRole()
-  const userData = hrisData["emp-001"]
-  const userDocs = documents.filter((d) => d.userId === "emp-001")
+  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
+  const userDocs = documents.filter((d) => d.userId === currentUser.id)
   const pendingRequests = timeOffRequests.filter((r) => r.status === "submitted")
 
   return (

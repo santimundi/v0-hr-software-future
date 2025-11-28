@@ -24,6 +24,14 @@ export const StateAnnotation = Annotation.Root({
   }),
   
   /**
+   * Employee name
+   */
+  employee_name: Annotation<string>({
+    reducer: (x: string, y: string) => y || x,
+    default: () => "",
+  }),
+  
+  /**
    * User query string
    */
   user_query: Annotation<string>({
