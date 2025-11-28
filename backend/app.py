@@ -10,11 +10,11 @@ from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 
-from src.agents.db_agent.graphbuilder import DB_Agent_GraphBuilder
 from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
+from src.services.main import DocumentService
 
 # MCP helpers
-from src.core.mcp.supabase import init_mcp, shutdown_mcp, get_mcp_tool_node, get_mcp_tools
+from src.core.mcp.supabase import *
 
 # Load environment variables (GROQ key, SUPABASE PAT, etc.)
 load_dotenv(".env.local")
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
     tools = await get_mcp_tools()
     llm_with_tools = llm.bind_tools(tools[:10])
     app.state.hr_graph = HR_Agent_GraphBuilder(llm_with_tools, tool_node=tool_node).build_graph()
-    app.state.db_graph = DB_Agent_GraphBuilder(llm_with_tools, tool_node=tool_node).build_graph()
+    app.state.document_service = DocumentService()
     
     yield  # App runs here
     
@@ -122,8 +122,9 @@ async def answer_query(request: Request):
 @app.post("/upload_file")
 async def upload_file(request: Request):
     """
-    Upload a file to the database storage.
+    Upload a file to the database storage and update the database with the file information.
     """
+    # Extract JSON payload
     data = await request.json()
     employee_id = data.get("employee_id", "")
     employee_name = data.get("employee_name", "")
@@ -135,55 +136,25 @@ async def upload_file(request: Request):
         file_bytes = bytes(file_bytes_array)
     else:
         file_bytes = file_bytes_array if isinstance(file_bytes_array, bytes) else b""
-
-    graph = app.state.db_graph
-
-    config = {"configurable": {"thread_id": employee_id}}
-
-    response = await graph.ainvoke(
-        {
-            "messages": [HumanMessage(content=f"Upload file: {filename}")],
-            "employee_id": employee_id,
-            "employee_name": employee_name,
-            "filename": filename,
-            "file_bytes": file_bytes,
-        },
-        config=config,
-    )
-
-
-    # Extract the response from the graph state
-    # The response should be in the state dictionary under the "response" key
-    graph_response = None
-    if isinstance(response, dict):
-        graph_response = response.get("response")
-        
-        # If response is None or empty, check if it's a dict with status_code
-        if not graph_response or (isinstance(graph_response, dict) and not graph_response.get("status_code")):
-            # Check if response key exists but is None/empty - might be a successful insert without explicit response
-            # Check messages for clues
-            messages = response.get("messages", [])
-            if messages:
-                last_message = messages[-1] if messages else None
-                if hasattr(last_message, 'content'):
-                    content = last_message.content
-                    # If message indicates success, return success response
-                    if "inserted" in content.lower() or "success" in content.lower():
-                        graph_response = {"status_code": 200, "message": content}
     
-    if graph_response and isinstance(graph_response, dict) and graph_response.get("status_code"):
-        return {"response": graph_response}
-    else:
-        # If no valid response in state, return error
-        error_msg = "Unknown error - no response from graph"
-        if isinstance(response, dict):
-            messages = response.get("messages", [])
-            if messages:
-                last_message = messages[-1] if messages else None
-                if hasattr(last_message, 'content'):
-                    error_msg = last_message.content
-        
-        return {"response": {"status_code": 500, "message": error_msg}}
+    # Get document service instance
+    document_service = app.state.document_service
+    
+    # Process document upload
+    result = await document_service.process_document_upload(
+        employee_id=employee_id,
+        employee_name=employee_name,
+        filename=filename,
+        file_bytes=file_bytes
+    )
+    
+    # Return response in the expected format
+    return {
+        "response": {
+            "status_code": result.get("status_code", 500),
+            "message": result.get("message", "Unknown error")
+        }
+    }
 
 
 # -----------------------------
