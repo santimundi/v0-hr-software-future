@@ -1,4 +1,5 @@
 import os
+import logging
 import uvicorn
 from contextlib import asynccontextmanager
 
@@ -6,10 +7,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 
+from src.agents.rag_agent.graphbuilder import RAG_Agent_GraphBuilder
 from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
 from src.services.main import DocumentService
 
@@ -55,14 +59,22 @@ async def lifespan(app: FastAPI):
     await init_mcp(server_name="supabase")
     tool_node = await get_mcp_tool_node()
     tools = await get_mcp_tools()
-    llm_with_tools = llm.bind_tools(tools[:10])
-    app.state.hr_graph = HR_Agent_GraphBuilder(llm_with_tools, tool_node=tool_node).build_graph()
+    llm_with_tools = llm.bind_tools(tools)
+
     app.state.document_service = DocumentService()
-    
+    # RAG agent needs base LLM (without tools) for structured output, but also needs tools for database queries
+    app.state.rag_graph = RAG_Agent_GraphBuilder(llm=llm_with_tools, tool_node=tool_node, base_llm=llm).build_graph()
+
+    app.state.hr_graph = HR_Agent_GraphBuilder(llm_with_tools, tool_node=tool_node, rag_graph=app.state.rag_graph).build_graph()
+
     yield  # App runs here
     
     # Shutdown: Cleanup MCP session
-    await shutdown_mcp()
+    try:
+        await shutdown_mcp()
+    except Exception as e:
+        # Suppress shutdown errors - these are cleanup issues and don't affect functionality
+        logger.warning(f"Non-critical error during MCP shutdown: {type(e).__name__}: {e}")
 
 # -----------------------------
 # FastAPI app setup

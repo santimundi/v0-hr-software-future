@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { documents as initialDocuments, type Document } from "@/lib/mock-data"
 import { useRole } from "@/lib/role-context"
+import { normalizeEmployeeId } from "@/lib/utils"
 
 const documentTypes = ["All", "Contract", "Payslip", "Performance", "Benefits", "Certificate"]
 const uploadDocumentTypes = ["Contract", "Payslip", "Performance", "Benefits", "Certificate"]
@@ -77,7 +78,7 @@ export default function DocumentsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          employee_id: currentUser.id,
+          employee_id: normalizeEmployeeId(currentUser.id), // Remove hyphens for backend compatibility
           employee_name: currentUser.name,
           filename: selectedFile.name,
           file_bytes: bytesArray, // Array of bytes (0-255)

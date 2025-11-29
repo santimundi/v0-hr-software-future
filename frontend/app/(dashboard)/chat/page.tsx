@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toggle } from "@/components/ui/toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+import { cn, normalizeEmployeeId } from "@/lib/utils"
 import { useRole } from "@/lib/role-context"
 import { conversations, type Conversation, type Message, type ActionCard, type Source } from "@/lib/mock-data"
 import { createClient } from "@/lib/supabase/client"
@@ -187,7 +187,8 @@ function ChatPageContent() {
 
     try {
       // Use the current user's employee ID (constant, guaranteed to remain the same)
-      const employeeId = currentUser.id
+      // Normalize to remove hyphens for backend compatibility
+      const employeeId = normalizeEmployeeId(currentUser.id)
 
       // Create or get active conversation
       let conversation = activeConversation

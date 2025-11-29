@@ -1,18 +1,51 @@
 import os
 from dotenv import load_dotenv
+from src.agents.rag_agent.graphbuilder import RAG_Agent_GraphBuilder
 from src.core.mcp.supabase import get_mcp_tools
-from src.agents.hr_agent.state import State
-from langchain_core.messages import SystemMessage, HumanMessage
-from src.agents.hr_agent.prompts import PROMPT
+from src.agents.hr_agent.state import State, RouteQueryOutput
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from src.agents.hr_agent.prompts import EXECUTION_PROMPT, ROUTE_QUERY_PROMPT
 
 load_dotenv('.env.local')
 
 
 class HR_Node:
-    def __init__(self, llm):
+    def __init__(self, llm, rag_graph):
         self.llm = llm 
+        self.rag_graph = rag_graph
  
     
+    def route_query(self, state: State) -> State:
+        user_query = state["messages"][-1].content
+
+        llm_with_structured_output = self.llm.with_structured_output(RouteQueryOutput)
+
+        messages = [
+            SystemMessage(content=ROUTE_QUERY_PROMPT),
+            HumanMessage(content=user_query),
+        ]
+
+        response = llm_with_structured_output.invoke(messages)
+
+        return {
+            "messages": [AIMessage(content=f"Decision: {response.decision}")],
+            "decision": response.decision,
+            "document_name": response.document_name,
+            "user_query": user_query,
+        }
+
+    
+    def route_input(self, state: State) -> State:
+
+        decision = state["decision"]
+
+        if decision == "rag":
+            return "rag_node"
+
+        elif decision == "agent":
+            return "hr_node"
+
+
     async def execute(self, state: State) -> State:
         user_query = state["messages"][-1].content
         job_title = state.get("job_title", "")
@@ -30,12 +63,14 @@ class HR_Node:
         
         # Build messages with system prompt and conversation history
         messages = [
-            SystemMessage(content=PROMPT),
+            SystemMessage(content=EXECUTION_PROMPT),
             HumanMessage(content=enhanced_query),
             *state["messages"]
         ]
           
-        # Use ainvoke for async execution (required when graph uses ainvoke)
+        
         response = await llm_with_tools.ainvoke(messages)
         
-        return {"messages": [response], "user_query": user_query, "job_title": job_title}
+        return {"messages": [response], "job_title": job_title}
+
+

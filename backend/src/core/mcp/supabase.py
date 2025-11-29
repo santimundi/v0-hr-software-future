@@ -153,6 +153,10 @@ async def shutdown_mcp() -> None:
         if _session_cm is not None:
             try:
                 await _session_cm.__aexit__(None, None, None)
+            except (RuntimeError, GeneratorExit, Exception) as e:
+                # Suppress cleanup errors during shutdown - these are common with async generators
+                # and don't affect functionality since we're shutting down anyway
+                logger.debug(f"MCP session cleanup warning (non-critical): {type(e).__name__}: {e}")
             finally:
                 _session_cm = None
                 _session = None

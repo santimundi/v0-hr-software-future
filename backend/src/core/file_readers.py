@@ -13,7 +13,7 @@ from pypdf import PdfReader
 
 logger = logging.getLogger(__name__)
 
-EXCEL_PREVIEW_ROWS = 200
+EXCEL_PREVIEW_ROWS = 1000
 
 
 def _json_safe(value: Any) -> Any:
