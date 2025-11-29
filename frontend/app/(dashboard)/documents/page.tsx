@@ -14,12 +14,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { documents as initialDocuments, type Document } from "@/lib/mock-data"
+import { getDocumentsForUser, type Document } from "@/lib/mock-data"
 import { useRole } from "@/lib/role-context"
 import { normalizeEmployeeId } from "@/lib/utils"
 
-const documentTypes = ["All", "Contract", "Payslip", "Performance", "Benefits", "Certificate"]
-const uploadDocumentTypes = ["Contract", "Payslip", "Performance", "Benefits", "Certificate"]
+const documentTypes = ["All", "Contract", "Payslip", "Performance", "Benefits", "Certificate", "Policy", "timesheet"]
+const uploadDocumentTypes = ["Contract", "Payslip", "Performance", "Benefits", "Certificate", "Policy", "timesheet"]
 
 export default function DocumentsPage() {
   const { currentUser } = useRole()
@@ -34,6 +34,8 @@ export default function DocumentsPage() {
   const [tags, setTags] = useState<string>("")
   const [isUploading, setIsUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<{ type: "success" | "error" | null; message: string }>({ type: null, message: "" })
+  const [isAskingQuestion, setIsAskingQuestion] = useState(false)
+  const [questionResponse, setQuestionResponse] = useState<string>("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Store file data (object URLs) for each document
   const [documentFiles, setDocumentFiles] = useState<Map<string, { file: File; url: string }>>(new Map())
@@ -223,6 +225,67 @@ export default function DocumentsPage() {
     return /\.pdf$/i.test(fileName)
   }
 
+  const handleAskQuestion = async () => {
+    if (!docQuestion.trim() || !selectedDoc || isAskingQuestion) return
+
+    setIsAskingQuestion(true)
+    setQuestionResponse("")
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      const employeeId = normalizeEmployeeId(currentUser.id)
+
+      // Extract document name from the selected document
+      // Use the title, removing file extension if present
+      const documentName = selectedDoc.title.replace(/\.[^/.]+$/, "")
+
+      const requestBody = {
+        employee_id: employeeId,
+        employee_name: currentUser.name,
+        query: docQuestion.trim(),
+        job_title: currentUser.title,
+        document_name: documentName,
+      }
+
+      // Debug: Log the request being sent
+      console.log("DEBUG: Sending query request with:", {
+        employee_id: requestBody.employee_id,
+        employee_name: requestBody.employee_name,
+        query: requestBody.query,
+        job_title: requestBody.job_title,
+        document_name: requestBody.document_name,
+      })
+
+      const response = await fetch(`${backendUrl}/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      setQuestionResponse(data.data || "Sorry, I couldn't process your question.")
+    } catch (error: any) {
+      setQuestionResponse(`Error: ${error.message || "Failed to get response. Please try again."}`)
+    } finally {
+      setIsAskingQuestion(false)
+    }
+  }
+
+  // Load documents for current user on mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      const userDocuments = getDocumentsForUser(currentUser.id)
+      setDocuments(userDocuments)
+    }
+  }, [currentUser?.id])
+
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
@@ -357,7 +420,16 @@ export default function DocumentsPage() {
       </Card>
 
       {/* Document Viewer Sheet */}
-      <Sheet open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
+      <Sheet 
+        open={!!selectedDoc} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedDoc(null)
+            setDocQuestion("")
+            setQuestionResponse("")
+          }
+        }}
+      >
         <SheetContent className="w-full sm:max-w-xl">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
@@ -501,10 +573,29 @@ export default function DocumentsPage() {
                     value={docQuestion}
                     onChange={(e) => setDocQuestion(e.target.value)}
                   />
-                  <Button className="w-full gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Ask Question
+                  <Button 
+                    className="w-full gap-2" 
+                    onClick={handleAskQuestion}
+                    disabled={!docQuestion.trim() || isAskingQuestion}
+                  >
+                    {isAskingQuestion ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Asking...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Ask Question
+                      </>
+                    )}
                   </Button>
+                  {questionResponse && (
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <p className="text-sm font-medium mb-2">Answer:</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{questionResponse}</p>
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground text-center">
                     Questions will be answered using only this document as context
                   </div>
@@ -535,7 +626,7 @@ export default function DocumentsPage() {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileSelect}
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.xlsx,.xlsm,.xls"
                   className="cursor-pointer"
                 />
               </div>
