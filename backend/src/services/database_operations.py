@@ -107,12 +107,12 @@ def get_employee_uuid(employee_id: str) -> Tuple[Optional[str], Optional[str]]:
         return None, error_msg
 
 
-def upload_to_storage(employee_uuid: str, filename: str, file_bytes: bytes) -> Tuple[Optional[str], Optional[str]]:
+def upload_to_storage(employee_id: str, filename: str, file_bytes: bytes) -> Tuple[Optional[str], Optional[str]]:
     """
     Upload a file to a PRIVATE Supabase Storage bucket.
     
     Args:
-        employee_uuid: UUID of the employee who owns/uploaded the document
+        employee_id: Employee ID of the employee who owns/uploaded the document (e.g., "EMP005" or "EMP-005")
         filename: Original filename of the file being uploaded
         file_bytes: The file content as bytes
     
@@ -124,8 +124,8 @@ def upload_to_storage(employee_uuid: str, filename: str, file_bytes: bytes) -> T
     try:
         supabase = get_supabase_client()
         
-        # Generate storage path
-        path = make_storage_path(employee_uuid, filename)
+        # Generate storage path (normalizes employee_id internally)
+        path = make_storage_path(employee_id, filename)
         
         # Guess content type from filename
         content_type = guess_content_type(filename)

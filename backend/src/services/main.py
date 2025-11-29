@@ -6,9 +6,8 @@ all document processing operations in a single workflow.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
-from langchain_core.language_models import BaseChatModel
 
 from .database_operations import *
 from .helpers import generate_summary
@@ -43,14 +42,14 @@ class DocumentService:
         Process a complete document upload workflow.
         
         This method orchestrates all the steps:
-        1. Read file content
-        2. Get employee UUID
-        3. Upload file to storage
-        4. Generate summary (if LLM provided)
-        5. Insert document into database
+        1. Reads the file's content
+        2. Gets the employee UUID
+        3. Uploads the file to storage
+        4. Generates a summary
+        5. Inserts the document into the database
         
         Args:
-            employee_id: Employee ID (e.g., "EMP-005")
+            employee_id: Employee ID (e.g., "EMP005")
             employee_name: Name of the employee uploading the document
             filename: Name of the file being uploaded
             file_bytes: File content as bytes
@@ -78,8 +77,8 @@ class DocumentService:
                     "document_id": None
                 }
             
-            # Step 3: Upload to storage
-            file_path, error = upload_to_storage(employee_uuid, filename, file_bytes)
+            # Step 3: Upload to storage (use employee_id, not UUID, for storage path)
+            file_path, error = upload_to_storage(employee_id, filename, file_bytes)
             if error:
                 return {
                     "success": False,

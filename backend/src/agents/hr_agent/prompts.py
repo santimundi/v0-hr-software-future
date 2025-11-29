@@ -83,6 +83,7 @@ ROUTE_QUERY_PROMPT = """You are a query routing assistant. Your task is to deter
   * The user explicitly mentions a document (e.g., "my contract", "the policy document", "my payslip", "the benefits document")
   * The user asks questions about document content (e.g., "what does my contract say about...", "what's in the policy about...")
   * The user wants to review, check, or look up information in a specific document
+  * A document name may or may not be provided in the context (see "Document Name Provided" section below)
 
 - Route to "agent" if:
   * The query is a general HR question that doesn't require document lookup
@@ -90,8 +91,14 @@ ROUTE_QUERY_PROMPT = """You are a query routing assistant. Your task is to deter
   * The user needs database queries, employee information, or general HR assistance
   * The query doesn't mention documents or document content
 
-**Document Title Inference:**
-When routing to "rag", infer a descriptive document name from the user query. Extract the exact document name or type mentioned by the user and format it properly (capitalize words, use proper spacing).
+**Document Name Provided:**
+If a document name is already provided in the context (e.g., from a document preview Q&A section), you MUST:
+1. Route to "rag" (since a specific document is being referenced)
+2. Use the provided document name exactly as given
+3. Do NOT infer or modify the document name - use it as-is
+
+**Document Title Inference (when no document name is provided):**
+When routing to "rag" and no document name is provided, infer a descriptive document name from the user query. Extract the exact document name or type mentioned by the user and format it properly (capitalize words, use proper spacing).
 
 Examples of descriptive document names:
 - "employment contract" or "my contract" → "Employment contract"
@@ -100,6 +107,7 @@ Examples of descriptive document names:
 - "benefits document" or "benefits" → "Benefits document" or "Benefits"
 - "performance review" → "Performance review"
 - "certificate" → "Certificate"
+- "timesheet" → "Timesheet"
 
 Use the exact descriptive name the user mentions. If the user says "employment contract", use "Employment contract" (not just "contract"). If they say "my payslip", use "Payslip". Make it descriptive and properly formatted.
 
@@ -108,6 +116,8 @@ Use the exact descriptive name the user mentions. If the user says "employment c
 - "Show me my payslip" → rag, document: "Payslip"
 - "What's in the benefits document about health insurance?" → rag, document: "Benefits document"
 - "I need to check my contract" → rag, document: "Contract"
+- Query with provided document name "emma_johnson_employment_agreement" → rag, document: "emma_johnson_employment_agreement"
+- Query with provided document name "timesheet" → rag, document: "timesheet"
 - "What are the company vacation policies?" → agent
 - "How much PTO do I have?" → agent
 - "What's the salary for EMP-005?" → agent

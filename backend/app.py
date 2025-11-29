@@ -1,12 +1,17 @@
 import os
 import logging
 import uvicorn
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
+
+# Set up logging FIRST, before any other imports that might use logging
+from logging_config import setup_logging
+setup_logging()
 
 logger = logging.getLogger(__name__)
 from langchain_groq import ChatGroq
@@ -111,9 +116,16 @@ async def answer_query(request: Request):
     employee_id = data.get("employee_id", "")
     employee_name = data.get("employee_name", "")
     job_title = data.get("job_title", "")
+    document_name = data.get("document_name", "")
+    
+    # Add separator for new request
+    logger.info("-" * 80)
+    logger.info(f"NEW REQUEST - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("-" * 80)
+    
+    # Log the received payload
+    logger.info(f"Received /query request - Employee ID: {employee_id}, Employee Name: {employee_name}, Job Title: {job_title}, Document Name: {document_name}, Query: {query}")
 
-    if not employee_id:
-        return {"error": "employee_id is required"}
 
     # Reuse the cached graph (DO NOT rebuild per request)
     graph = app.state.hr_graph
@@ -123,12 +135,24 @@ async def answer_query(request: Request):
 
     # Run the graph asynchronously.
     response = await graph.ainvoke(
-        {"messages": [HumanMessage(content=query)], "employee_id": employee_id, "employee_name": employee_name, "job_title": job_title},
+        {
+            "messages": [HumanMessage(content=query)], 
+            "user_query": query,
+            "employee_id": employee_id, 
+            "employee_name": employee_name, 
+            "job_title": job_title, 
+            "document_name": document_name
+        },
         config=config,
     )
 
+    # Log request completion
+    response_content = response["messages"][-1].content
+    logger.info(f"Request completed - Response length: {len(response_content)} characters")
+    logger.info("-" * 80)
+    
     # Return final assistant message content
-    return {"data": response["messages"][-1].content}
+    return {"data": response_content}
 
 
 @app.post("/upload_file")
@@ -175,4 +199,11 @@ async def upload_file(request: Request):
 if __name__ == "__main__":
 
     # Run FastAPI server
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    # Uvicorn startup/shutdown messages will show in console
+    # Application logs go to files only
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=False
+    )

@@ -14,10 +14,20 @@ load_dotenv(".env.local")
 from src.services.helpers import get_supabase_client
 from langchain_openai import OpenAIEmbeddings
 
-
+openai_api_key = os.getenv("OPENAI_API_KEY")
+EMBEDDINGS = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=openai_api_key,
+)
 
 logger = logging.getLogger(__name__)
 
+
+
+# Simple in-memory caches
+_FAISS_CACHE: Dict[str, FAISS] = {}
+_ROWS_CACHE: Dict[str, List[str]] = {}
+_TEXT_CHUNKS_CACHE: Dict[str, List[str]] = {}
 
 def get_content(document_id: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     """
@@ -144,13 +154,28 @@ def get_context(document_id: str, user_query: str) -> Tuple[List, List[str]]:
         - results: List of similar document chunks with scores
         - rows_chunks: List of structured row chunks
     """
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=openai_api_key)
+    db, rows_chunks = _build_index_for_document(document_id)
+
+    if db is None:
+         return [], rows_chunks
+
+    results = db.similarity_search_with_score(user_query, k=5)
+    return results, rows_chunks
+
+
+def _build_index_for_document(document_id: str) -> Tuple[Optional[FAISS], List[str]]:
+    """
+    Build or retrieve the FAISS index and row chunks for a document.
+    Returns (faiss_index, rows_chunks).
+    """
+    # Return cached if present
+    if document_id in _FAISS_CACHE:
+        return _FAISS_CACHE[document_id], _ROWS_CACHE.get(document_id, [])
+
     content_text, content_structured = get_content(document_id)
 
-    # Initialize variables
-    text_chunks = []
-    rows_chunks = []
+    text_chunks: List[str] = []
+    rows_chunks: List[str] = []
 
     if content_text:
         text_splitter = CharacterTextSplitter(chunk_size=600, chunk_overlap=100)
@@ -158,14 +183,19 @@ def get_context(document_id: str, user_query: str) -> Tuple[List, List[str]]:
 
     if content_structured:
         rows_chunks = get_row_chunks(content_structured)
-    
-    # Only create vector store if we have text chunks
-    if text_chunks:
-        db = FAISS.from_texts(text_chunks, embeddings)
-        results = db.similarity_search_with_score(user_query, k=5)  # k=5 to get top 5 results
-    else:
-        # If no text chunks, return empty results
-        results = []
-    
-    return results, rows_chunks
 
+    # If no chunks, store empty and return
+    if not text_chunks:
+        _FAISS_CACHE[document_id] = None  # type: ignore
+        _ROWS_CACHE[document_id] = rows_chunks
+        _TEXT_CHUNKS_CACHE[document_id] = []
+        return None, rows_chunks
+
+    db = FAISS.from_texts(text_chunks, EMBEDDINGS)
+
+    # Cache
+    _FAISS_CACHE[document_id] = db
+    _ROWS_CACHE[document_id] = rows_chunks
+    _TEXT_CHUNKS_CACHE[document_id] = text_chunks
+
+    return db, rows_chunks

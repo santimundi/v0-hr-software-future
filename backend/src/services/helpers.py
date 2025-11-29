@@ -80,14 +80,14 @@ def guess_content_type(filename: str) -> str:
     return content_type or "application/octet-stream"
 
 
-def make_storage_path(employee_uuid: str, filename: str) -> str:
+def make_storage_path(employee_id: str, filename: str) -> str:
     """
     Generate a storage path for the file.
     
-    Format: employees/{employee_uuid}/{timestamp}_{safe_filename}
+    Format: employees/{employee_id}/{timestamp}_{safe_filename}
     
     Args:
-        employee_uuid: UUID of the employee who owns the document
+        employee_id: Employee ID of the employee who owns the document (e.g., "EMP005")
         filename: Original filename
     
     Returns:
@@ -99,7 +99,10 @@ def make_storage_path(employee_uuid: str, filename: str) -> str:
     # Sanitize filename: strip whitespace and replace spaces with underscores
     safe = filename.strip().replace(" ", "_")
     
-    return f"employees/{employee_uuid}/{ts}_{safe}"
+    # Normalize employee_id by removing dashes (ensure format like "EMP005")
+    normalized_employee_id = employee_id.replace("-", "")
+    
+    return f"employees/{normalized_employee_id}/{ts}_{safe}"
 
 
 
