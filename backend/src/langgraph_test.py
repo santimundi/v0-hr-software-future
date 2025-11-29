@@ -23,11 +23,11 @@ llm = ChatGroq(model="openai/gpt-oss-120b", api_key=groq_api_key)
 # Build graphs synchronously (NO asyncio.run here)
 rag_graph = RAG_Agent_GraphBuilder(
     llm=llm,
-    tool_node=supabase_tools_node,
+    tool_node=None,
 ).build_graph()
 
 graph = HR_Agent_GraphBuilder(
     llm=llm,
-    tool_node=supabase_tools_node,
+    tool_node=None,
     rag_graph=rag_graph,
 ).build_graph()
