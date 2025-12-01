@@ -7,9 +7,9 @@ from langchain_core.documents import Document
 
 class RouteQueryOutput(BaseModel):
     rag : bool = Field(description="Whether to route to the RAG system")
-    rag_query: Optional[str] = Field(description="The query to pass to the RAG system")
-    agent_query: str = Field(description="The query to pass to the agent system")
-    document_name: Optional[str] = Field(description="The name of the document to search for")
+    rag_query: Optional[str] = Field(default="", description="The query to pass to the RAG system")
+    agent_query: Optional[str] = Field(default="", description="The query to pass to the agent system")
+    document_name: Optional[str] = Field(default=None, description="The name of the document to search for")
 
 
 class DocumentIdOutput(BaseModel):

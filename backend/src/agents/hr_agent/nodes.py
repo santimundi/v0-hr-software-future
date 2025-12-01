@@ -51,10 +51,10 @@ class HR_Node:
         return {
             "messages": [AIMessage(content=f"RAG: {response.rag}, Document: {response.document_name}".rstrip())],
             "rag": response.rag,
-            "document_name": response.document_name,
+            "document_name": response.document_name or "",
             "user_query": user_query,
             "rag_query": response.rag_query or "",
-            "agent_query": response.agent_query,
+            "agent_query": response.agent_query or "",
         }
 
     

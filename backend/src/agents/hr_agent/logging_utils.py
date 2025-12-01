@@ -6,7 +6,7 @@ including node entry/exit logging, tool call logging, and debug information.
 """
 
 import logging
-from typing import List, Any
+from typing import List, Any, Optional
 from langchain_core.messages import ToolMessage, AIMessage
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def log_rag_context_debug(results: List[Any], rows_chunks: List[str]):
         logger.debug(f"First row chunk (first 200 chars): {first_chunk_preview}")
 
 
-def log_routing_decision(rag: bool, document_name: str, rag_query: str, agent_query: str):
+def log_routing_decision(rag: bool, document_name: Optional[str], rag_query: Optional[str], agent_query: Optional[str]):
     """
     Log the routing decision made by the route_query node.
     
@@ -94,9 +94,9 @@ def log_routing_decision(rag: bool, document_name: str, rag_query: str, agent_qu
         rag_query: Refined query for RAG
         agent_query: Refined query for agent
     """
-    logger.info(f"Route query - RAG needed: {rag}, Document name: {document_name}")
-    logger.info(f"RAG query: {rag_query}")
-    logger.info(f"Agent query: {agent_query}")
+    logger.info(f"Route query - RAG needed: {rag}, Document name: {document_name or 'None'}")
+    logger.info(f"RAG query: {rag_query or 'None'}")
+    logger.info(f"Agent query: {agent_query or 'None'}")
 
 
 def log_get_context_tool_calls(response: AIMessage):
