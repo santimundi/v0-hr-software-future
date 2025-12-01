@@ -6,7 +6,6 @@ from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 from src.core.mcp.supabase import get_mcp_tools_sync
 from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
-from src.agents.rag_agent.graphbuilder import RAG_Agent_GraphBuilder
 
 
 # The code below is for the Langsmith/LangGraph studio
