@@ -15,6 +15,15 @@ from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
 
+class FlushingRotatingFileHandler(RotatingFileHandler):
+    """
+    A RotatingFileHandler that flushes after each log entry to ensure real-time writes.
+    """
+    def emit(self, record):
+        super().emit(record)
+        self.flush()  # Flush immediately after each log entry
+
+
 def setup_logging(log_dir: str = "logs") -> None:
     """
     Configure logging for the application.
@@ -39,6 +48,10 @@ def setup_logging(log_dir: str = "logs") -> None:
     app_log_file = daily_log_path / "app.log"
     errors_log_file = daily_log_path / "errors.log"
     
+    # For testing: delete app.log if it exists to ensure overwrite
+    if app_log_file.exists():
+        app_log_file.unlink()
+    
     # Define log format
     log_format = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -53,10 +66,11 @@ def setup_logging(log_dir: str = "logs") -> None:
     root_logger.handlers.clear()
     
     # Handler 1: App log (INFO and above) - with rotation
-    # Note: RotatingFileHandler appends by default (industry standard - preserves log history)
-    app_handler = RotatingFileHandler(
+    # Note: Using 'w' mode for testing (overwrites on each run)
+    # Using FlushingRotatingFileHandler to ensure real-time log writes
+    app_handler = FlushingRotatingFileHandler(
         app_log_file,
-        mode='a',  # Append mode (explicit - industry standard)
+        mode='w',  # Write mode (overwrite) - for testing purposes
         maxBytes=10 * 1024 * 1024,  # 10MB per file
         backupCount=5,  # Keep 5 backup files
         encoding='utf-8'
@@ -67,8 +81,8 @@ def setup_logging(log_dir: str = "logs") -> None:
     root_logger.addHandler(app_handler)
     
     # Handler 2: Errors log (ERROR and CRITICAL only) - with rotation
-    # Note: RotatingFileHandler appends by default (industry standard - preserves log history)
-    errors_handler = RotatingFileHandler(
+    # Note: Using FlushingRotatingFileHandler to ensure real-time log writes
+    errors_handler = FlushingRotatingFileHandler(
         errors_log_file,
         mode='a',  # Append mode (explicit - industry standard)
         maxBytes=10 * 1024 * 1024,  # 10MB per file

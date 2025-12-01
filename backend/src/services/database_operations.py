@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
 
-from src.core.file_readers import read_pdf, read_text_file, read_excel
+from .file_readers import read_pdf, read_text_file, read_excel
 from .helpers import get_supabase_client, guess_content_type, make_storage_path, BUCKET
 
 logger = logging.getLogger(__name__)

@@ -179,6 +179,39 @@ async def get_mcp_tools() -> List[BaseTool]:
     return _tools  # type: ignore[return-value]
 
 
+def get_mcp_tools_sync() -> List[BaseTool]:
+    """
+    Synchronous version of get_mcp_tools().
+    Gets cached tools; lazily initializes MCP if needed.
+    Use this in synchronous contexts.
+    
+    Note: This will block the current thread while initializing MCP if needed.
+    Raises RuntimeError if called from within an async context (use await get_mcp_tools() instead).
+    """
+    if _tools is not None:
+        return _tools  # type: ignore[return-value]
+    
+    # If tools aren't cached, we need to initialize MCP
+    # Check if we're in an async context first
+    try:
+        loop = asyncio.get_running_loop()
+        # If we get here, we're in an async context
+        raise RuntimeError(
+            "Cannot use get_mcp_tools_sync() in an async context. "
+            "Use await get_mcp_tools() instead."
+        )
+    except RuntimeError as e:
+        # If it's our error, re-raise it
+        if "Cannot use get_mcp_tools_sync" in str(e):
+            raise
+        # Otherwise, no event loop is running, so we can use asyncio.run()
+        pass
+    
+    # Initialize MCP synchronously
+    asyncio.run(init_mcp())
+    return _tools  # type: ignore[return-value]
+
+
 async def get_mcp_tool_node() -> ToolNode:
     """
     Get cached ToolNode; lazily initializes MCP if needed.

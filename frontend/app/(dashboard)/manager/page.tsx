@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Users, Calendar, AlertTriangle, Sparkles, Check, X, Clock } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useRole } from "@/lib/role-context"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 
 const teamMembers = [
   {
@@ -28,7 +30,14 @@ const pendingApprovals = [
 ]
 
 export default function ManagerHubPage() {
-  const { role } = useRole()
+  const { role, setRole } = useRole()
+
+  // Ensure role is set to manager when on this page
+  useEffect(() => {
+    if (role !== "manager" && role !== "hr-admin") {
+      setRole("manager")
+    }
+  }, [role, setRole])
 
   if (role === "employee") {
     redirect("/")
@@ -137,22 +146,22 @@ export default function ManagerHubPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <Button variant="outline" className="w-full justify-start bg-transparent" asChild>
-              <a href="/chat?prompt=Summarize team PTO for the next 30 days">
+              <Link href="/chat?prompt=Summarize team PTO for the next 30 days">
                 <Calendar className="h-4 w-4 mr-2" />
                 Team PTO next 30 days
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start bg-transparent" asChild>
-              <a href="/chat?prompt=Show team capacity and availability">
+              <Link href="/chat?prompt=Show team capacity and availability">
                 <Users className="h-4 w-4 mr-2" />
                 Team capacity overview
-              </a>
+              </Link>
             </Button>
             <Button variant="outline" className="w-full justify-start bg-transparent" asChild>
-              <a href="/chat?prompt=Who on my team might be at risk of burnout?">
+              <Link href="/chat?prompt=Who on my team might be at risk of burnout?">
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 Burnout risk indicators
-              </a>
+              </Link>
             </Button>
             <div className="text-xs text-muted-foreground p-2 bg-background rounded-lg">
               <AlertTriangle className="h-3 w-3 inline mr-1" />

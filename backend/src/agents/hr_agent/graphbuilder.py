@@ -10,10 +10,9 @@ class HR_Agent_GraphBuilder:
     This class builds the graph used to execute HR queries based on the user's query.
     """
 
-    def __init__(self, llm, tool_node, rag_graph):
+    def __init__(self, llm, tools):
         self.llm = llm
-        self.tool_node = tool_node
-        self.rag_graph = rag_graph
+        self.tools = tools
         self.graph = StateGraph(State)
 
 
@@ -24,42 +23,57 @@ class HR_Agent_GraphBuilder:
         """
         
         # Initialize the HR node
-        hr_node = HR_Node(self.llm, self.rag_graph)
+        hr_node = HR_Node(self.llm, self.tools)
 
-        # Use provided tool_node (should be passed from app startup)
-        if self.tool_node is None:
-            raise ValueError("tool_node must be provided to GraphBuilder")
-
+        # Create ToolNode with handle_tool_errors=True to convert exceptions to tool messages
+        tool_node = ToolNode(self.tools, handle_tool_errors=True)
+       
         # Add the nodes to the graph
         self.graph.add_node("route_query", hr_node.route_query)
         self.graph.add_node("hr_node", hr_node.execute)
-        self.graph.add_node("rag_subgraph", self.rag_graph)
-        self.graph.add_node("tools", self.tool_node)
+        self.graph.add_node("get_context", hr_node.get_context)
+        self.graph.add_node("get_document_id", hr_node.get_document_id)
+        self.graph.add_node("tools_rag", tool_node)
+        self.graph.add_node("tools_hr", tool_node)
         
-        # Add the edges to the graph
+
         self.graph.add_edge(START, "route_query")
+
         self.graph.add_conditional_edges(
-            "route_query", 
-            hr_node.route_input, {
-                "rag_node": "rag_subgraph",
-                "hr_node": "hr_node",
+            "route_query",
+            hr_node.route_input,
+            {
+                "get_context": "get_context",  # When rag is true, route to get_context
+                "hr_node": "hr_node",    # When rag is false, route to hr_node
             }
         )
 
-        
+        self.graph.add_conditional_edges(
+            "get_context",
+            tools_condition,
+            {
+                "tools": "tools_rag",
+                END: "get_document_id",
+            }
+        )
+
+        self.graph.add_edge("tools_rag", "get_context")
+
+
+        self.graph.add_edge("get_document_id", "hr_node")
+
         self.graph.add_conditional_edges(
             "hr_node",
             tools_condition,
             {
-                "tools": "tools",
-                END: END
+                "tools": "tools_hr",  # If LLM wants to call tools, route to tools node
+                END: END,  # If no tool calls, end
             }
         )
+
         
-        # After tools execute, route back to hr_node
-        self.graph.add_edge("tools", "hr_node")
-        
-        self.graph.add_edge("rag_subgraph", END)
+        self.graph.add_edge("tools_hr", "hr_node")
+        self.graph.add_edge("hr_node", END)
 
         return self.graph.compile(checkpointer=MemorySaver())
         

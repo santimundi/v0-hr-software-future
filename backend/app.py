@@ -18,7 +18,6 @@ from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 
-from src.agents.rag_agent.graphbuilder import RAG_Agent_GraphBuilder
 from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
 from src.services.main import DocumentService
 
@@ -62,15 +61,11 @@ async def lifespan(app: FastAPI):
     """
     # Startup: Initialize MCP and build graph
     await init_mcp(server_name="supabase")
-    tool_node = await get_mcp_tool_node()
     tools = await get_mcp_tools()
-    llm_with_tools = llm.bind_tools(tools)
 
     app.state.document_service = DocumentService()
-    # RAG agent needs base LLM (without tools) for structured output, but also needs tools for database queries
-    app.state.rag_graph = RAG_Agent_GraphBuilder(llm=llm_with_tools, tool_node=tool_node, base_llm=llm).build_graph()
 
-    app.state.hr_graph = HR_Agent_GraphBuilder(llm_with_tools, tool_node=tool_node, rag_graph=app.state.rag_graph).build_graph()
+    app.state.hr_graph = HR_Agent_GraphBuilder(llm = llm, tools=tools).build_graph()
 
     yield  # App runs here
     

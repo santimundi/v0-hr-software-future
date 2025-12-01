@@ -4,7 +4,7 @@ from dotenv import load_dotenv, find_dotenv
 from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
-from src.core.mcp.supabase import get_mcp_tool_node, init_mcp, get_mcp_tools
+from src.core.mcp.supabase import get_mcp_tools_sync
 from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
 from src.agents.rag_agent.graphbuilder import RAG_Agent_GraphBuilder
 
@@ -20,14 +20,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 llm = ChatGroq(model="openai/gpt-oss-120b", api_key=groq_api_key)
 #llm = ChatOpenAI(model="gpt-5", api_key=openai_api_key)
 
-# Build graphs synchronously (NO asyncio.run here)
-rag_graph = RAG_Agent_GraphBuilder(
-    llm=llm,
-    tool_node=None,
-).build_graph()
 
-graph = HR_Agent_GraphBuilder(
-    llm=llm,
-    tool_node=None,
-    rag_graph=rag_graph,
-).build_graph()
+tools = get_mcp_tools_sync()
+
+graph = HR_Agent_GraphBuilder(llm=llm, tools=tools).build_graph()

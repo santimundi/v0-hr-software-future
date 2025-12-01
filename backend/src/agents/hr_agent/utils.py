@@ -1,5 +1,8 @@
 """
-Tools for RAG agent to retrieve document content from Supabase.
+Utility functions for RAG operations to retrieve document content from Supabase.
+
+Note: These are utility functions, not LangChain tools. For actual LangChain tools,
+see the MCP tools in src.core.mcp.supabase.
 """
 
 import logging
@@ -141,9 +144,44 @@ def get_row_chunks(structured: Dict[str, Any], rows_per_chunk: int = 50) -> List
     return chunks
     
 
-def get_context(document_id: str, user_query: str) -> Tuple[List, List[str]]:
+def format_context_for_llm(results: List, rows_chunks: List[str]) -> str:
     """
-    Get the context for the RAG agent to answer the user's query.
+    Format the RAG context (results and rows_chunks) into a single string for the LLM.
+    
+    Args:
+        results: List of tuples (Document, float) from FAISS similarity search
+        rows_chunks: List of strings containing structured row chunks
+    
+    Returns:
+        Formatted string containing document content and structured data
+    """
+    context_text = ""
+    
+    # Format results (Document objects with scores)
+    if results:
+        context_text += "Document Content:\n"
+        for i, result in enumerate(results[:5], 1):  # Limit to top 5 results
+            if isinstance(result, tuple) and len(result) >= 2:
+                doc = result[0]
+                # Extract page_content from LangChain Document object
+                if hasattr(doc, 'page_content'):
+                    doc_content = doc.page_content
+                else:
+                    doc_content = str(doc)
+                context_text += f"Section {i}:\n{doc_content}\n\n"
+    
+    # Format rows_chunks (already strings)
+    if rows_chunks:
+        context_text += "Structured Data:\n"
+        for chunk in rows_chunks[:3]:  # Limit to first 3 row chunks
+            context_text += f"{chunk}\n\n"
+    
+    return context_text
+
+
+def retrieve_document_context(document_id: str, user_query: str) -> Tuple[List, List[str]]:
+    """
+    Retrieve the context for the RAG agent to answer the user's query.
     
     Args:
         document_id: The UUID of the document
@@ -199,3 +237,4 @@ def _build_index_for_document(document_id: str) -> Tuple[Optional[FAISS], List[s
     _TEXT_CHUNKS_CACHE[document_id] = text_chunks
 
     return db, rows_chunks
+
