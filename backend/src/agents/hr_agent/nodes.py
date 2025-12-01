@@ -1,24 +1,13 @@
 import logging
-from src.agents.hr_agent.utils import retrieve_document_context, format_context_for_llm
-from src.agents.hr_agent.state import DocumentIdOutput, State, RouteQueryOutput
-from src.agents.hr_agent.logging_utils import (
-    log_node_entry,
-    log_node_exit,
-    log_routing_decision,
-    log_get_context_tool_calls,
-    log_get_context_tool_results,
-    log_last_tool_result_for_extraction,
-    log_execute_response,
-)
-from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, HumanMessage, ToolMessage
-from src.agents.hr_agent.prompts import EXECUTION_PROMPT, ROUTE_QUERY_PROMPT, GET_DOCUMENT_ID_PROMPT, EXTRACT_ID_PROMPT
-from langchain_core.output_parsers import PydanticOutputParser
 import re
 import json
+from src.agents.hr_agent.utils import retrieve_document_context, format_context_for_llm
+from src.agents.hr_agent.state import State, RouteQueryOutput
+from src.agents.hr_agent.logging_utils import *
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
+from src.agents.hr_agent.prompts import *
 
 logger = logging.getLogger(__name__)
-
-
 
 UUID_REGEX = re.compile(
     r"[0-9a-fA-F]{8}-"
@@ -68,6 +57,7 @@ class HR_Node:
             "agent_query": response.agent_query,
         }
 
+    
     
     def route_input(self, state: State) -> State:
         log_node_entry("route_input")

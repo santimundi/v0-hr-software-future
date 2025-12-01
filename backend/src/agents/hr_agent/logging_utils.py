@@ -24,17 +24,6 @@ def log_node_entry(node_name: str):
     logger.info("=" * 80)
 
 
-def log_node_exit(node_name: str):
-    """
-    Log exit from a graph node.
-    
-    Args:
-        node_name: Name of the node being exited
-    """
-    logger.info(f"<<< EXIT: {node_name}")
-    logger.info("=" * 80)
-
-
 def log_tool_calls(response: AIMessage, context: str = ""):
     """
     Log tool calls from an LLM response.
