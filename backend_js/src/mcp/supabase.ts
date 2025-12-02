@@ -1,6 +1,6 @@
 /**
- * MCP tools for interacting with Supabase MCP server (persistent session).
- * Maps from Python tools.py to TypeScript
+ * MCP client for interacting with Supabase MCP server (persistent session).
+ * Maps from Python src/core/mcp/supabase.py to TypeScript
  */
 
 import fs from "fs";
@@ -23,8 +23,9 @@ let _initLock = false;
  * Load MCP server definitions from a JSON config file.
  * Maps from Python load_mcp_servers function
  */
-function loadMcpServers(configPath: string = "./mcp.json"): Record<string, any> {
-  const fullPath = path.resolve(__dirname, "..", configPath);
+function loadMcpServers(configPath: string = "mcp.json"): Record<string, any> {
+  // Look for mcp.json in the same directory as this file
+  const fullPath = path.resolve(__dirname, configPath);
   
   if (!fs.existsSync(fullPath)) {
     throw new Error(`MCP config file not found: ${fullPath}`);

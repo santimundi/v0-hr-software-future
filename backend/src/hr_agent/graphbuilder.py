@@ -1,7 +1,7 @@
 from langgraph.graph import START, StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from src.agents.hr_agent.state import State
-from src.agents.hr_agent.nodes import HR_Node
+from src.hr_agent.state import State
+from src.hr_agent.nodes import HR_Node
 from langgraph.checkpoint.memory import MemorySaver
 
 
@@ -32,7 +32,6 @@ class HR_Agent_GraphBuilder:
         self.graph.add_node("route_query", hr_node.route_query)
         self.graph.add_node("hr_node", hr_node.execute)
         self.graph.add_node("get_context", hr_node.get_context)
-        self.graph.add_node("get_document_id", hr_node.get_document_id)
         self.graph.add_node("tools_rag", tool_node)
         self.graph.add_node("tools_hr", tool_node)
         
@@ -53,14 +52,12 @@ class HR_Agent_GraphBuilder:
             tools_condition,
             {
                 "tools": "tools_rag",
-                END: "get_document_id",
+                END: "hr_node",
             }
         )
 
         self.graph.add_edge("tools_rag", "get_context")
 
-
-        self.graph.add_edge("get_document_id", "hr_node")
 
         self.graph.add_conditional_edges(
             "hr_node",
@@ -75,5 +72,5 @@ class HR_Agent_GraphBuilder:
         self.graph.add_edge("tools_hr", "hr_node")
         self.graph.add_edge("hr_node", END)
 
-        return self.graph.compile(checkpointer=MemorySaver())
+        return self.graph.compile()
         

@@ -18,7 +18,7 @@ from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 
-from src.agents.hr_agent.graphbuilder import HR_Agent_GraphBuilder
+from src.hr_agent.graphbuilder import HR_Agent_GraphBuilder
 from src.services.main import DocumentService
 
 # MCP helpers

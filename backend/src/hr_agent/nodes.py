@@ -1,21 +1,14 @@
 import logging
 import re
 import json
-from src.agents.hr_agent.utils import retrieve_document_context, format_context_for_llm
-from src.agents.hr_agent.state import State, RouteQueryOutput
-from src.agents.hr_agent.logging_utils import *
+from src.hr_agent.tools import get_document_context
+from src.hr_agent.state import State, RouteQueryOutput
+from src.hr_agent.logging_utils import *
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
-from src.agents.hr_agent.prompts import *
+from src.hr_agent.prompts import EXECUTION_PROMPT, ROUTE_QUERY_PROMPT, GET_CONTEXT_PROMPT
 
 logger = logging.getLogger(__name__)
 
-UUID_REGEX = re.compile(
-    r"[0-9a-fA-F]{8}-"
-    r"[0-9a-fA-F]{4}-"
-    r"[0-9a-fA-F]{4}-"
-    r"[0-9a-fA-F]{4}-"
-    r"[0-9a-fA-F]{12}"
-)
 
 
 class HR_Node:
@@ -68,31 +61,6 @@ class HR_Node:
     
     
 
-    def extract_document_id(self, text: str) -> str:
-        text = text.strip()
-
-        # 1) Try JSON: {"document_id": "..."}
-        try:
-            obj = json.loads(text)
-            if isinstance(obj, dict) and "document_id" in obj:
-                return str(obj["document_id"]).strip()
-        except json.JSONDecodeError:
-            pass
-
-        # 2) Try DOCUMENT_ID:<uuid>
-        m = re.search(r"DOCUMENT_ID:\s*([^\s\"']+)", text)
-        if m:
-            return m.group(1).strip()
-
-        # 3) Fallback: first UUID-looking pattern
-        m = UUID_REGEX.search(text)
-        if m:
-            return m.group(0)
-
-        # 4) As a last fallback, strip quotes and return whatever’s left
-        return text.strip().strip('"').strip("'")
-
-   
    
     def get_context(self, state: State) -> State:
         log_node_entry("get_context")
@@ -101,12 +69,14 @@ class HR_Node:
         employee_id = state["employee_id"]
 
         messages = [
-            SystemMessage(content=GET_DOCUMENT_ID_PROMPT),
+            SystemMessage(content=GET_CONTEXT_PROMPT),
             HumanMessage(content=f"Document Name: {document_name}, Employee ID: {employee_id}"),
             *state["messages"],
         ]
+        
 
-        response = self.llm_with_tools.invoke(messages)
+        llm = self.llm.bind_tools([get_document_context])
+        response = llm.invoke(messages)
 
         # Log all tool calls from the response
         log_get_context_tool_calls(response)
@@ -120,25 +90,7 @@ class HR_Node:
 
         return {"messages": [response]}
 
-    
-    def get_document_id(self, state: State) -> str:
-        log_node_entry("get_document_id")
-
-        last_message = state["messages"][-1]
-        raw = last_message.content if isinstance(last_message.content, str) else str(last_message.content)
-        document_id = self.extract_document_id(raw)
-        
-        logger.info(f"Extracted document_id: {document_id}")
-        
-        results, rows_chunks = retrieve_document_context(document_id, "")
-        
-        # Format context for LLM
-        formatted_context = format_context_for_llm(results, rows_chunks)
-        
-        logger.info(f"Formatted context length: {len(formatted_context)} characters")
-        
-        return {"formatted_context": formatted_context}
-        
+         
     
     def execute(self, state: State) -> State:
         log_node_entry("hr_node (execute)")
