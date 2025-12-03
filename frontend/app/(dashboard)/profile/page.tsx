@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { useRole } from "@/lib/role-context"
-import { hrisData } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 import Link from "next/link"
 
 export default function ProfilePage() {
   const { currentUser, role } = useRole()
-  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
+  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP-005"]
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">

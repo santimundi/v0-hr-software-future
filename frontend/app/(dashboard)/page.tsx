@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useRole } from "@/lib/role-context"
-import { hrisData, documents, timeOffRequests } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 import Link from "next/link"
 
 const quickPrompts = {
@@ -49,9 +49,9 @@ const dataAccessScope = {
 
 export default function HomePage() {
   const { role, currentUser } = useRole()
-  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
-  const userDocs = documents.filter((d) => d.userId === currentUser.id)
-  const pendingRequests = timeOffRequests.filter((r) => r.status === "submitted")
+  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP-005"]
+  const userDocs = MockData.documents.filter((d) => d.userId === currentUser.id)
+  const pendingRequests = MockData.timeOffRequests.filter((r) => r.status === "submitted")
 
   return (
     <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">

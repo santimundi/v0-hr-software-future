@@ -15,9 +15,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useRole } from "@/lib/role-context"
-import type { UserRole } from "@/lib/mock-data"
+import type * as MockData from "@/lib/mock-data"
 
-const roleLabels: Record<UserRole, { label: string; color: string }> = {
+const roleLabels: Record<MockData.UserRole, { label: string; color: string }> = {
   employee: { label: "Employee", color: "bg-chart-2 text-primary-foreground" },
   manager: { label: "Manager", color: "bg-chart-1 text-primary-foreground" },
   "hr-admin": { label: "HR Admin", color: "bg-chart-4 text-primary-foreground" },

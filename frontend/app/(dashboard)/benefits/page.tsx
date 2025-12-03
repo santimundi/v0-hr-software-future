@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { benefits } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 
 const benefitIcons: Record<string, typeof Heart> = {
   Health: Heart,
@@ -49,7 +49,7 @@ export default function BenefitsPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Benefits List */}
         <div className="lg:col-span-2 space-y-4">
-          {benefits.map((benefit) => {
+          {MockData.benefits.map((benefit) => {
             const Icon = benefitIcons[benefit.type] || Shield
             return (
               <Card key={benefit.id}>

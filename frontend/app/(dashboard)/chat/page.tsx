@@ -31,11 +31,11 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Toggle } from "@/components/ui/toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn, normalizeEmployeeId } from "@/lib/utils"
+import * as Utils from "@/lib/utils"
 import { useRole } from "@/lib/role-context"
-import { conversations, type Conversation, type Message, type ActionCard, type Source } from "@/lib/mock-data"
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import * as MockData from "@/lib/mock-data"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 const sourceIcons: Record<string, typeof FileText> = {
   policy: FileText,
@@ -65,15 +65,117 @@ const scopeOptions = [
   { id: "all", label: "All allowed sources" },
 ]
 
+type AvailabilityEntry = {
+  employee: string
+  start: string
+  end: string
+  status: string
+}
+
+type AvailabilityChartData = {
+  title?: string
+  entries: AvailabilityEntry[]
+}
+
+function AvailabilityChart({ data }: { data: AvailabilityChartData }) {
+  if (!data?.entries || !Array.isArray(data.entries) || data.entries.length === 0) {
+    return null
+  }
+
+  const statusColor: Record<string, string> = {
+    approved: "bg-emerald-500",
+    pending: "bg-amber-500",
+    cancelled: "bg-rose-500",
+  }
+
+  const statusLabel: Record<string, string> = {
+    approved: "Approved",
+    pending: "Pending",
+    cancelled: "Cancelled",
+  }
+
+  // Calculate date range for timeline
+  const dates = data.entries.flatMap(e => [new Date(e.start), new Date(e.end)])
+  const minDate = new Date(Math.min(...dates.map(d => d.getTime())))
+  const maxDate = new Date(Math.max(...dates.map(d => d.getTime())))
+  const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+  const getPosition = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const daysFromStart = Math.ceil((date.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24))
+    return (daysFromStart / totalDays) * 100
+  }
+
+  const getWidth = (start: string, end: string) => {
+    const startPos = getPosition(start)
+    const endPos = getPosition(end)
+    return Math.max(2, endPos - startPos) // Minimum 2% width for visibility
+  }
+
+  return (
+    <div className="border rounded-lg bg-card p-4 my-4 space-y-3">
+      {data.title && <div className="font-semibold text-base mb-2">{data.title}</div>}
+      
+      {/* Timeline header */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+        <div className="w-32 shrink-0">Employee</div>
+        <div className="flex-1 relative">
+          <div className="flex justify-between">
+            <span>{minDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span>{maxDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+          </div>
+        </div>
+        <div className="w-24 shrink-0 text-right">Status</div>
+      </div>
+
+      {/* Timeline bars */}
+      <div className="space-y-3">
+        {data.entries.map((entry, idx) => {
+          const left = getPosition(entry.start)
+          const width = getWidth(entry.start, entry.end)
+          const days = Math.ceil((new Date(entry.end).getTime() - new Date(entry.start).getTime()) / (1000 * 60 * 60 * 24)) + 1
+          
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <div className="w-32 font-medium text-sm truncate shrink-0">{entry.employee}</div>
+              <div className="flex-1 relative h-8 bg-muted/30 rounded overflow-hidden">
+                <div
+                  className={`absolute h-full ${statusColor[entry.status] || "bg-slate-500"} rounded flex items-center justify-center text-white text-[10px] font-medium`}
+                  style={{ 
+                    left: `${left}%`, 
+                    width: `${width}%`,
+                    minWidth: width < 5 ? '40px' : 'auto'
+                  }}
+                  title={`${entry.start} to ${entry.end} (${days} day${days !== 1 ? 's' : ''})`}
+                >
+                  {width > 8 && (
+                    <span className="px-1 truncate">
+                      {new Date(entry.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(entry.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-24 shrink-0 text-right">
+                <span className={`text-xs px-2 py-1 rounded ${statusColor[entry.status] || "bg-slate-500"} text-white`}>
+                  {statusLabel[entry.status] || entry.status}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function ChatPageContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const { role, currentUser } = useRole()
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(conversations[0])
+  const [activeConversation, setActiveConversation] = useState<MockData.Conversation | null>(MockData.conversations[0])
   const [input, setInput] = useState("")
   const [selectedScopes, setSelectedScopes] = useState<string[]>(["all"])
   const [actionDrawerOpen, setActionDrawerOpen] = useState(false)
-  const [selectedAction, setSelectedAction] = useState<ActionCard | null>(null)
+  const [selectedAction, setSelectedAction] = useState<MockData.ActionCard | null>(null)
   const [showSafetySettings, setShowSafetySettings] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [pendingApproval, setPendingApproval] = useState<{ explanation: string; interruptId?: string; threadId?: string } | null>(null)
@@ -101,7 +203,7 @@ function ChatPageContent() {
     }
   }
 
-  const handleActionClick = (action: ActionCard) => {
+  const handleActionClick = (action: MockData.ActionCard) => {
     setSelectedAction(action)
     setActionDrawerOpen(true)
   }
@@ -110,7 +212,7 @@ function ChatPageContent() {
    * Parses the backend response and extracts structured data
    * Handles both plain text and structured JSON responses
    */
-  const parseBackendResponse = (responseData: any): Partial<Message> => {
+  const parseBackendResponse = (responseData: any): Partial<MockData.Message> => {
     try {
       // If data is a string, try to parse it as JSON first
       let parsedData = responseData.data
@@ -129,7 +231,7 @@ function ChatPageContent() {
 
       // If parsedData is an object, extract structured fields
       if (typeof parsedData === 'object' && parsedData !== null) {
-        const message: Partial<Message> = {
+        const message: Partial<MockData.Message> = {
           content: parsedData.content || parsedData.text || parsedData.message || JSON.stringify(parsedData),
         }
 
@@ -139,7 +241,7 @@ function ChatPageContent() {
             type: source.type || 'document',
             title: source.title || source.name || 'Unknown Source',
             version: source.version,
-          })) as Source[]
+          })) as MockData.Source[]
         }
 
         // Extract dataUsed if present
@@ -161,7 +263,7 @@ function ChatPageContent() {
             type: action.type || 'message',
             title: action.title || action.name || 'Action',
             description: action.description || action.desc || '',
-          })) as ActionCard[]
+          })) as MockData.ActionCard[]
         }
 
         return message
@@ -189,15 +291,13 @@ function ChatPageContent() {
     setIsLoading(true)
 
     try {
-      // Use the current user's employee ID (constant, guaranteed to remain the same)
-      // Normalize to remove hyphens for backend compatibility
-      const employeeId = normalizeEmployeeId(currentUser.id)
+      const employeeId = Utils.normalizeEmployeeId(currentUser.id)
 
       // Create or get active conversation
       let conversation = activeConversation
       if (!conversation) {
         // Create a new conversation
-        const newConversation: Conversation = {
+        const newConversation: MockData.Conversation = {
           id: Date.now().toString(),
           title: query.substring(0, 50),
           lastMessage: query,
@@ -210,7 +310,7 @@ function ChatPageContent() {
       }
 
       // Add user message to conversation
-      const userMessage: Message = {
+      const userMessage: MockData.Message = {
         id: Date.now().toString(),
         role: "user",
         content: query,
@@ -224,9 +324,7 @@ function ChatPageContent() {
         lastMessage: query,
       })
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-      
-      const response = await fetch(`${backendUrl}/query`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -269,7 +367,7 @@ function ChatPageContent() {
       const parsedResponse = parseBackendResponse(data)
       
       // Add AI response to conversation with parsed data
-      const aiMessage: Message = {
+      const aiMessage: MockData.Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: parsedResponse.content || "Sorry, I couldn't process your request.",
@@ -288,7 +386,7 @@ function ChatPageContent() {
     } catch (error) {
       // Add error message to conversation
       if (activeConversation) {
-        const errorMessage: Message = {
+        const errorMessage: MockData.Message = {
           id: Date.now().toString(),
           role: "assistant",
           content: error instanceof Error ? error.message : "An error occurred while processing your request.",
@@ -309,10 +407,9 @@ function ChatPageContent() {
 
     setIsLoading(true)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-      const employeeId = normalizeEmployeeId(currentUser.id)
+      const employeeId = Utils.normalizeEmployeeId(currentUser.id)
 
-      const response = await fetch(`${backendUrl}/query`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -339,7 +436,7 @@ function ChatPageContent() {
       // Handle the final response
       if (data.type === "final") {
         if (activeConversation) {
-          const aiMessage: Message = {
+          const aiMessage: MockData.Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
             content: data.data || (approved ? "The operation has been approved and executed." : "The operation has been rejected."),
@@ -362,7 +459,7 @@ function ChatPageContent() {
       }
     } catch (error) {
       if (activeConversation) {
-        const errorMessage: Message = {
+        const errorMessage: MockData.Message = {
           id: Date.now().toString(),
           role: "assistant",
           content: error instanceof Error ? error.message : "An error occurred while processing your approval.",
@@ -378,7 +475,7 @@ function ChatPageContent() {
     }
   }
 
-  const renderMessage = (message: Message) => {
+  const renderMessage = (message: MockData.Message) => {
     if (message.role === "user") {
       return (
         <div key={message.id} className="flex justify-end">
@@ -397,7 +494,75 @@ function ChatPageContent() {
           </div>
           <div className="flex-1 space-y-3">
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code: (props: any) => {
+                    const { inline, className, children } = props
+                    // Allow hyphens in language name
+                    const match = /language-([\w-]+)/.exec(className || "")
+                    const language = match?.[1]
+                    // Safer: children can be an array
+                    const textContent = Array.isArray(children) ? children.join("") : String(children)
+                    const trimmed = textContent.trim()
+
+                    const tryParseChart = () => {
+                      try {
+                        const parsed = JSON.parse(trimmed)
+                        if (parsed && Array.isArray(parsed.entries)) {
+                          return parsed as AvailabilityChartData
+                        }
+                      } catch {
+                        return null
+                      }
+                      return null
+                    }
+
+                    if (!inline) {
+                      if (language === "availability-chart") {
+                        const chartData = tryParseChart()
+                        if (chartData) return <AvailabilityChart data={chartData} />
+                      }
+                      // Optional fallback: if LLM forgot language but returned valid JSON
+                      if (!language) {
+                        const chartData = tryParseChart()
+                        if (chartData) return <AvailabilityChart data={chartData} />
+                      }
+                    }
+
+                    return <code className={className}>{children}</code>
+                  },
+                  pre: (props) => <>{props.children}</>,
+                  table: (props) => (
+                    <table className="min-w-full border-collapse text-sm my-3">
+                      {props.children}
+                    </table>
+                  ),
+                  thead: (props) => (
+                    <thead className="border-b border-muted-foreground/40 bg-muted/40">
+                      {props.children}
+                    </thead>
+                  ),
+                  th: (props) => (
+                    <th className="px-3 py-2 text-left font-semibold align-bottom">
+                      {props.children}
+                    </th>
+                  ),
+                  tbody: (props) => <tbody>{props.children}</tbody>,
+                  tr: (props) => (
+                    <tr className="border-b border-muted/20 last:border-0">
+                      {props.children}
+                    </tr>
+                  ),
+                  td: (props) => (
+                    <td className="px-3 py-1 align-top whitespace-nowrap">
+                      {props.children}
+                    </td>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             </div>
 
             {/* Sources */}
@@ -407,7 +572,7 @@ function ChatPageContent() {
                 {message.sources.map((source, i) => {
                   const Icon = sourceIcons[source.type] || FileText
                   return (
-                    <Badge key={i} variant="secondary" className={cn("text-xs gap-1", sourceColors[source.type])}>
+                    <Badge key={i} variant="secondary" className={Utils.cn("text-xs gap-1", sourceColors[source.type])}>
                       <Icon className="h-3 w-3" />
                       {source.title}
                       {source.version && <span className="opacity-70">v{source.version}</span>}
@@ -438,7 +603,7 @@ function ChatPageContent() {
                           <span className="text-xs text-muted-foreground">Confidence:</span>
                           <Badge
                             variant="outline"
-                            className={cn(
+                            className={Utils.cn(
                               "text-xs",
                               message.confidence === "high" && "border-success text-success",
                               message.confidence === "medium" && "border-warning text-warning",
@@ -497,18 +662,18 @@ function ChatPageContent() {
         </div>
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-1">
-            {conversations.filter((c) => c.pinned).length > 0 && (
+            {MockData.conversations.filter((c) => c.pinned).length > 0 && (
               <>
                 <div className="px-2 py-1.5">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pinned</span>
                 </div>
-                {conversations
+                {MockData.conversations
                   .filter((c) => c.pinned)
                   .map((conv) => (
                     <button
                       key={conv.id}
                       onClick={() => setActiveConversation(conv)}
-                      className={cn(
+                      className={Utils.cn(
                         "w-full text-left p-3 rounded-lg transition-colors",
                         activeConversation?.id === conv.id ? "bg-accent" : "hover:bg-accent/50",
                       )}
@@ -528,13 +693,13 @@ function ChatPageContent() {
             <div className="px-2 py-1.5">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent</span>
             </div>
-            {conversations
+            {MockData.conversations
               .filter((c) => !c.pinned)
               .map((conv) => (
                 <button
                   key={conv.id}
                   onClick={() => setActiveConversation(conv)}
-                  className={cn(
+                  className={Utils.cn(
                     "w-full text-left p-3 rounded-lg transition-colors",
                     activeConversation?.id === conv.id ? "bg-accent" : "hover:bg-accent/50",
                   )}

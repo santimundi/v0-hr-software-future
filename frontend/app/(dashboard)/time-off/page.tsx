@@ -20,8 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useRole } from "@/lib/role-context"
-import { timeOffRequests, hrisData } from "@/lib/mock-data"
-import { cn } from "@/lib/utils"
+import * as MockData from "@/lib/mock-data"
+import * as Utils from "@/lib/utils"
 
 const leaveTypes = [
   { value: "annual", label: "Annual Leave", color: "bg-chart-1" },
@@ -39,11 +39,11 @@ const statusColors: Record<string, string> = {
 
 export default function TimeOffPage() {
   const { role, currentUser } = useRole()
-  const userData = hrisData[currentUser.id] || hrisData["EMP-005"]
+  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP-005"]
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const pendingApprovals = timeOffRequests.filter((r) => r.status === "submitted")
+  const pendingApprovals = MockData.timeOffRequests.filter((r) => r.status === "submitted")
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -75,7 +75,7 @@ export default function TimeOffPage() {
                     {leaveTypes.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
-                          <div className={cn("h-2 w-2 rounded-full", type.color)} />
+                          <div className={Utils.cn("h-2 w-2 rounded-full", type.color)} />
                           {type.label}
                         </div>
                       </SelectItem>
@@ -211,7 +211,7 @@ export default function TimeOffPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {timeOffRequests.map((request) => {
+                {MockData.timeOffRequests.map((request) => {
                   const leaveType = leaveTypes.find((t) => t.value === request.type)
                   const startDate = new Date(request.startDate)
                   const endDate = new Date(request.endDate)

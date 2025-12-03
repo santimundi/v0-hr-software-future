@@ -14,19 +14,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { getDocumentsForUser, type Document } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 import { useRole } from "@/lib/role-context"
-import { normalizeEmployeeId } from "@/lib/utils"
+import * as Utils from "@/lib/utils"
 
 const documentTypes = ["All", "Contract", "Payslip", "Performance", "Benefits", "Certificate", "Policy", "timesheet"]
 const uploadDocumentTypes = ["Contract", "Payslip", "Performance", "Benefits", "Certificate", "Policy", "timesheet"]
 
 export default function DocumentsPage() {
   const { currentUser } = useRole()
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<MockData.Document[]>([])
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("All")
-  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
+  const [selectedDoc, setSelectedDoc] = useState<MockData.Document | null>(null)
   const [docQuestion, setDocQuestion] = useState("")
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -80,7 +80,7 @@ export default function DocumentsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          employee_id: normalizeEmployeeId(currentUser.id), // Remove hyphens for backend compatibility
+          employee_id: Utils.normalizeEmployeeId(currentUser.id),
           employee_name: currentUser.name,
           filename: selectedFile.name,
           file_bytes: bytesArray, // Array of bytes (0-255)
@@ -114,7 +114,7 @@ export default function DocumentsPage() {
         const fileUrl = URL.createObjectURL(selectedFile)
 
         // Create new document
-        const newDocument: Document = {
+        const newDocument: MockData.Document = {
           id: newId,
           title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
           type: documentType,
@@ -185,7 +185,7 @@ export default function DocumentsPage() {
     }
   }
 
-  const handleDownload = (doc: Document) => {
+  const handleDownload = (doc: MockData.Document) => {
     const fileData = documentFiles.get(doc.id)
     if (fileData) {
       const link = document.createElement("a")
@@ -212,7 +212,7 @@ export default function DocumentsPage() {
     }
   }
 
-  const getFilePreviewUrl = (doc: Document): string | null => {
+      const getFilePreviewUrl = (doc: MockData.Document): string | null => {
     const fileData = documentFiles.get(doc.id)
     return fileData?.url || null
   }
@@ -281,7 +281,7 @@ export default function DocumentsPage() {
   // Load documents for current user on mount
   useEffect(() => {
     if (currentUser?.id) {
-      const userDocuments = getDocumentsForUser(currentUser.id)
+      const userDocuments = MockData.getDocumentsForUser(currentUser.id)
       setDocuments(userDocuments)
     }
   }, [currentUser?.id])

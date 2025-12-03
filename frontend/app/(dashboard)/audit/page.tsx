@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { useRole } from "@/lib/role-context"
-import { auditEvents, type AuditEvent } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 import { redirect } from "next/navigation"
 
 const decisionColors: Record<string, string> = {
@@ -29,13 +29,13 @@ export default function AuditLogPage() {
   const { role } = useRole()
   const [search, setSearch] = useState("")
   const [decisionFilter, setDecisionFilter] = useState("all")
-  const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<MockData.AuditEvent | null>(null)
 
   if (role !== "hr-admin") {
     redirect("/")
   }
 
-  const filteredEvents = auditEvents.filter((event) => {
+  const filteredEvents = MockData.auditEvents.filter((event) => {
     const matchesSearch =
       event.query.toLowerCase().includes(search.toLowerCase()) ||
       event.userName.toLowerCase().includes(search.toLowerCase())
@@ -43,8 +43,8 @@ export default function AuditLogPage() {
     return matchesSearch && matchesDecision
   })
 
-  const blockedCount = auditEvents.filter((e) => e.decision === "blocked").length
-  const riskFlagCount = auditEvents.filter((e) => e.riskFlags.length > 0).length
+  const blockedCount = MockData.auditEvents.filter((e) => e.decision === "blocked").length
+  const riskFlagCount = MockData.auditEvents.filter((e) => e.riskFlags.length > 0).length
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -61,7 +61,7 @@ export default function AuditLogPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{auditEvents.length}</div>
+            <div className="text-2xl font-bold">{MockData.auditEvents.length}</div>
             <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
@@ -72,7 +72,7 @@ export default function AuditLogPage() {
             <Check className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{auditEvents.length - blockedCount}</div>
+            <div className="text-2xl font-bold text-success">{MockData.auditEvents.length - blockedCount}</div>
             <p className="text-xs text-muted-foreground">Successful queries</p>
           </CardContent>
         </Card>

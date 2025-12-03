@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
 import { useRole } from "@/lib/role-context"
-import { policies } from "@/lib/mock-data"
+import * as MockData from "@/lib/mock-data"
 import { redirect } from "next/navigation"
 
 const dataConnectors = [
@@ -96,7 +96,7 @@ export default function AdminConsolePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {policies.map((policy) => (
+                  {MockData.policies.map((policy) => (
                     <TableRow key={policy.id}>
                       <TableCell className="font-medium">{policy.title}</TableCell>
                       <TableCell>

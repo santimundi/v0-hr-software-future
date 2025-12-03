@@ -27,7 +27,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { useRole } from "@/lib/role-context"
-import { cn } from "@/lib/utils"
+import * as Utils from "@/lib/utils"
 
 const mainNavItems = [
   { title: "Home", href: "/", icon: Home },
@@ -79,7 +79,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.href)}
-                    className={cn(
+                    className={Utils.cn(
                       "transition-colors",
                       isActive(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground",
                     )}
@@ -107,7 +107,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive(item.href)}
-                      className={cn(
+                      className={Utils.cn(
                         "transition-colors",
                         isActive(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}
@@ -136,7 +136,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive(item.href)}
-                      className={cn(
+                      className={Utils.cn(
                         "transition-colors",
                         isActive(item.href) && "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}

@@ -4,13 +4,7 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
-class RouteQueryOutput(BaseModel):
-    rag : bool = Field(description="Whether to route to the RAG system")
-    rag_query: Optional[str] = Field(default="", description="The query to pass to the RAG system")
-    agent_query: Optional[str] = Field(default="", description="The query to pass to the agent system")
-    document_name: Optional[str] = Field(default=None, description="The name of the document to search for")
-
-    
+        
 class UserFeedbackOutput(BaseModel):
     approved: bool = Field(description="Whether the user has approved the write operation")
 

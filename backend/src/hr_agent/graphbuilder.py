@@ -27,53 +27,34 @@ class HR_Agent_GraphBuilder:
 
         # Create ToolNode with handle_tool_errors=True to convert exceptions to tool messages
         tool_node = ToolNode(self.tools, handle_tool_errors=True)
-       
+
         # Add the nodes to the graph
-        self.graph.add_node("route_query", hr_node.route_query)
-        self.graph.add_node("hr_node", hr_node.execute)
-        self.graph.add_node("get_context", hr_node.get_context)
+        self.graph.add_node("hr_node", hr_node.process_query)
         self.graph.add_node("hitl_approval", hr_node.hitl_approval)
         self.graph.add_node("handle_hitl_approval", hr_node.handle_hitl_approval)
-        self.graph.add_node("tools_rag", tool_node)
         self.graph.add_node("tools_hr", tool_node)
-        
 
-        self.graph.add_edge(START, "route_query")
+        # Start directly at the main HR node
+        self.graph.add_edge(START, "hr_node")
 
-        self.graph.add_conditional_edges(
-            "route_query",
-            hr_node.route_input,
-            {
-                "get_context": "get_context",  # When rag is true, route to get_context
-                "hr_node": "hr_node",    # When rag is false, route to hr_node
-            }
-        )
-
-        self.graph.add_conditional_edges(
-            "get_context",
-            tools_condition,
-            {
-                "tools": "tools_rag",
-                END: "hr_node",
-            }
-        )
-
-        self.graph.add_edge("tools_rag", "get_context")
-
-
+        # After hr_node runs, decide whether to route to HITL, tools, or end
         self.graph.add_conditional_edges(
             "hr_node",
             hr_node.check_if_write_operation,
             {
-                "hitl_approval": "hitl_approval",  # If LLM wants to call tools, route to tools node
-                "tools_hr": "tools_hr",  # If LLM wants to call tools, route to tools node
-                END: END,  # If no tool calls, end
+                "hitl_approval": "hitl_approval",  # If a write is detected, route to HITL approval
+                "tools_hr": "tools_hr",           # For normal tool execution (read operations)
+                END: END,                         # If no tool calls, end
             }
         )
 
+        # After HITL approval is handled, return to hr_node
         self.graph.add_edge("hitl_approval", "handle_hitl_approval")
         self.graph.add_edge("handle_hitl_approval", "hr_node")
+
+        # After tools execute, return to hr_node
         self.graph.add_edge("tools_hr", "hr_node")
+        
         self.graph.add_edge("hr_node", END)
 
         return self.graph.compile(checkpointer=MemorySaver())
