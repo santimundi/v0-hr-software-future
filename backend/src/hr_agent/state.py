@@ -1,8 +1,7 @@
-from typing import Annotated, List, Literal, TypedDict, Tuple, Optional
+from typing import Annotated, List, TypedDict, Optional
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
-from langchain_core.documents import Document
 
 
 class RouteQueryOutput(BaseModel):
@@ -11,23 +10,24 @@ class RouteQueryOutput(BaseModel):
     agent_query: Optional[str] = Field(default="", description="The query to pass to the agent system")
     document_name: Optional[str] = Field(default=None, description="The name of the document to search for")
 
+    
+class UserFeedbackOutput(BaseModel):
+    approved: bool = Field(description="Whether the user has approved the write operation")
 
-class DocumentIdOutput(BaseModel):
-    document_id: str = Field(description="The ID of the document to search for")
 
 class State(TypedDict):
     """
      Represents the state in the HR Agent Chatbot
     """
     messages: Annotated[List[BaseMessage], add_messages]
-    user_query: str
-    employee_id: str
-    employee_name: str
-    job_title: str
-    rag: bool
-    document_name: str
-    document_id: str
-    formatted_context: str  # Formatted context string ready for LLM
-    rag_query: str  # Refined query for RAG system
-    agent_query: str  # Refined query for agent system
-    messages_length: Optional[int] = 0
+    user_query: str = Field(default="", description="The user's original query")
+    rag_query: str = Field(default="", description="The query to pass to the RAG system")
+    agent_query: str = Field(default="", description="The query to pass to the agent system")
+    employee_id: str = Field(default="", description="The employee ID of the user")
+    employee_name: str = Field(default="", description="The name of the user")
+    job_title: str = Field(default="", description="The job title of the user")
+    document_name: str = Field(default="", description="The name of the document to search for")
+    document_id: str = Field(default="", description="The ID of the document to search for")
+    formatted_context: str = Field(default="", description="The formatted context of the document")
+    user_feedback: Optional[str] = Field(description="The user's feedback on the write operation")
+    rag: bool = Field(default=False, description="Whether to route to the RAG system")

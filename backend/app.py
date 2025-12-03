@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 from langchain_groq import ChatGroq
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
-
+from langgraph.types import Command
 from src.hr_agent.graphbuilder import HR_Agent_GraphBuilder
 from src.services.main import DocumentService
 
@@ -61,7 +61,15 @@ async def lifespan(app: FastAPI):
     """
     # Startup: Initialize MCP and build graph
     await init_mcp(server_name="supabase")
-    tools = await get_mcp_tools()
+    all_tools = await get_mcp_tools()
+    
+    # Filter to only include 'execute_sql' and 'list_tables' tools
+    # Sort by name to ensure consistent ordering: 'execute_sql' will be index 0, 'list_tables' will be index 1
+    tools = sorted(
+        [tool for tool in all_tools if tool.name in ['execute_sql', 'list_tables']],
+        key=lambda t: t.name
+    )
+    logger.info(f"Filtered MCP tools: {[tool.name for tool in tools]}")
 
     app.state.document_service = DocumentService()
 
@@ -103,51 +111,58 @@ async def answer_query(request: Request):
     - Read query and employee_id
     - Reuse the cached graph (built at startup)
     - Invoke graph asynchronously (required for async MCP tools)
+    - This endpoint is also used to provide feedback to the grapg when an interrupt is triggered
     """
     
-    # Extract JSON payload
     data = await request.json()
-    query = data.get("query", "")
+
     employee_id = data.get("employee_id", "")
-    employee_name = data.get("employee_name", "")
-    job_title = data.get("job_title", "")
-    document_name = data.get("document_name", "")
-    
-    # Add separator for new request
-    logger.info("-" * 80)
-    logger.info(f"NEW REQUEST - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("-" * 80)
-    
-    # Log the received payload
-    logger.info(f"Received /query request - Employee ID: {employee_id}, Employee Name: {employee_name}, Job Title: {job_title}, Document Name: {document_name}, Query: {query}")
-
-
-    # Reuse the cached graph (DO NOT rebuild per request)
-    graph = app.state.hr_graph
-
-    # LangGraph config (thread_id uses employee_id for per-employee conversation memory)
     config = {"configurable": {"thread_id": employee_id}}
 
-    # Run the graph asynchronously.
-    response = await graph.ainvoke(
-        {
-            "messages": [HumanMessage(content=query)], 
-            "user_query": query,
-            "employee_id": employee_id, 
-            "employee_name": employee_name, 
-            "job_title": job_title, 
-            "document_name": document_name
-        },
-        config=config,
-    )
-
-    # Log request completion
-    response_content = response["messages"][-1].content
-    logger.info(f"Request completed - Response length: {len(response_content)} characters")
-    logger.info("-" * 80)
     
-    # Return final assistant message content
-    return {"data": response_content}
+    graph = app.state.hr_graph
+
+    # 1) RESUME PATH (user provided feedback)
+    if "resume" in data:
+        # resume can be a bool or a JSON object, e.g. {"approved": True, "comment": "..."}
+        result = await graph.ainvoke(Command(resume=data["resume"]), config=config)
+
+    # 2) NEW RUN PATH
+    else:
+        query = data.get("query", "")
+        employee_name = data.get("employee_name", "")
+        job_title = data.get("job_title", "")
+        document_name = data.get("document_name", "")
+
+        result = await graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=query)],
+                "user_query": query,
+                "employee_id": employee_id,
+                "employee_name": employee_name,
+                "job_title": job_title,
+                "document_name": document_name,
+            },
+            config=config,
+        )
+
+    # If graph is paused for HITL, return that to frontend
+    if "__interrupt__" in result and result["__interrupt__"]:
+
+        # result["__interrupt__"] is often a list of Interrupt objects; payload is in .value
+        interrupts = []
+        for it in result["__interrupt__"]:
+            interrupts.append(getattr(it, "value", it))
+        return {
+            "type": "interrupt",
+            "interrupts": interrupts,
+        }
+
+
+    # Otherwise normal completion
+    msg = result["messages"][-1].content
+    return {"type": "final", "data": msg}
+
 
 
 @app.post("/upload_file")

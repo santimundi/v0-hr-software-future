@@ -43,4 +43,6 @@ backend/logs/
 build/
 dist/
 
+.langgraph_api/
+
 

@@ -19,6 +19,8 @@ import {
   Mail,
   ClipboardList,
   MessageSquare,
+  CheckCircle,
+  XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,6 +76,7 @@ function ChatPageContent() {
   const [selectedAction, setSelectedAction] = useState<ActionCard | null>(null)
   const [showSafetySettings, setShowSafetySettings] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState<{ explanation: string; interruptId?: string; threadId?: string } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -247,6 +250,21 @@ function ChatPageContent() {
 
       const data = await response.json()
       
+      // Check if this is an interrupt (HITL approval needed)
+      if (data.type === "interrupt" && data.interrupts && data.interrupts.length > 0) {
+        const interrupt = data.interrupts[0]
+        if (interrupt.type === "db_write_approval") {
+          // Store the pending approval request with thread ID for resume
+          setPendingApproval({
+            explanation: interrupt.explanation || "A database write operation requires your approval.",
+            interruptId: interrupt.id,
+            threadId: employeeId, // Use employee_id as thread_id for resume
+          })
+          setIsLoading(false)
+          return
+        }
+      }
+      
       // Parse the backend response to extract structured data
       const parsedResponse = parseBackendResponse(data)
       
@@ -274,6 +292,80 @@ function ChatPageContent() {
           id: Date.now().toString(),
           role: "assistant",
           content: error instanceof Error ? error.message : "An error occurred while processing your request.",
+          timestamp: new Date().toISOString(),
+        }
+        setActiveConversation({
+          ...activeConversation,
+          messages: [...(activeConversation.messages || []), errorMessage],
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleApprovalResponse = async (approved: boolean) => {
+    if (!pendingApproval) return
+
+    setIsLoading(true)
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      const employeeId = normalizeEmployeeId(currentUser.id)
+
+      const response = await fetch(`${backendUrl}/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employee_id: pendingApproval.threadId || employeeId,
+          resume: {
+            approved: approved,
+            user_feedback: approved ? "Approved" : "Rejected",
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      // Clear pending approval
+      setPendingApproval(null)
+
+      // Handle the final response
+      if (data.type === "final") {
+        if (activeConversation) {
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: data.data || (approved ? "The operation has been approved and executed." : "The operation has been rejected."),
+            timestamp: new Date().toISOString(),
+          }
+          setActiveConversation({
+            ...activeConversation,
+            messages: [...(activeConversation.messages || []), aiMessage],
+          })
+        }
+      } else if (data.type === "interrupt") {
+        // Another interrupt (shouldn't happen, but handle it)
+        const interrupt = data.interrupts?.[0]
+        if (interrupt?.type === "db_write_approval") {
+          setPendingApproval({
+            explanation: interrupt.explanation || "A database write operation requires your approval.",
+            interruptId: interrupt.id,
+          })
+        }
+      }
+    } catch (error) {
+      if (activeConversation) {
+        const errorMessage: Message = {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: error instanceof Error ? error.message : "An error occurred while processing your approval.",
           timestamp: new Date().toISOString(),
         }
         setActiveConversation({
@@ -468,6 +560,47 @@ function ChatPageContent() {
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
+
+            {/* Approval Dialog */}
+            {pendingApproval && (
+              <div className="border-t bg-card p-4 border-yellow-500/20 bg-yellow-500/5">
+                <div className="max-w-3xl mx-auto">
+                  <Card className="border-yellow-500/50">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <AlertCircle className="h-5 w-5 text-yellow-500" />
+                        Action Confirmation Required
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="text-sm whitespace-pre-wrap">{pendingApproval.explanation}</p>
+                      </div>
+                      <Separator />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleApprovalResponse(false)}
+                          disabled={isLoading}
+                          className="gap-2"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Reject
+                        </Button>
+                        <Button
+                          onClick={() => handleApprovalResponse(true)}
+                          disabled={isLoading}
+                          className="gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approve
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="border-t bg-card p-4">

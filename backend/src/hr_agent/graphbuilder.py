@@ -32,6 +32,8 @@ class HR_Agent_GraphBuilder:
         self.graph.add_node("route_query", hr_node.route_query)
         self.graph.add_node("hr_node", hr_node.execute)
         self.graph.add_node("get_context", hr_node.get_context)
+        self.graph.add_node("hitl_approval", hr_node.hitl_approval)
+        self.graph.add_node("handle_hitl_approval", hr_node.handle_hitl_approval)
         self.graph.add_node("tools_rag", tool_node)
         self.graph.add_node("tools_hr", tool_node)
         
@@ -61,16 +63,18 @@ class HR_Agent_GraphBuilder:
 
         self.graph.add_conditional_edges(
             "hr_node",
-            tools_condition,
+            hr_node.check_if_write_operation,
             {
-                "tools": "tools_hr",  # If LLM wants to call tools, route to tools node
+                "hitl_approval": "hitl_approval",  # If LLM wants to call tools, route to tools node
+                "tools_hr": "tools_hr",  # If LLM wants to call tools, route to tools node
                 END: END,  # If no tool calls, end
             }
         )
 
-        
+        self.graph.add_edge("hitl_approval", "handle_hitl_approval")
+        self.graph.add_edge("handle_hitl_approval", "hr_node")
         self.graph.add_edge("tools_hr", "hr_node")
         self.graph.add_edge("hr_node", END)
 
-        return self.graph.compile()
+        return self.graph.compile(checkpointer=MemorySaver())
         
