@@ -1,6 +1,7 @@
 import os
 import logging
 import uvicorn
+import time
 from datetime import datetime
 from contextlib import asynccontextmanager
 
@@ -23,6 +24,13 @@ from src.services.main import DocumentService
 
 # MCP helpers
 from src.core.mcp.supabase import *
+
+# Audit logging
+from src.hr_agent.audit import (
+    new_request_id,
+    request_id_var, thread_id_var, actor_var, interrupt_id_var,
+)
+from src.hr_agent.audit_helpers import *
 
 # Load environment variables (GROQ key, SUPABASE PAT, etc.)
 load_dotenv(".env.local")
@@ -114,25 +122,50 @@ async def answer_query(request: Request):
     - This endpoint is also used to provide feedback to the grapg when an interrupt is triggered
     """
     
+    # Generate request ID and set context variables
+    request_id = new_request_id()
+    request_id_var.set(request_id)
+    start_time = time.time()
+    
     data = await request.json()
 
     employee_id = data.get("employee_id", "")
+    thread_id_var.set(employee_id)
     config = {"configurable": {"thread_id": employee_id}}
 
-    
+    # Set actor information in context (matching audit spec structure)
+    employee_name = data.get("employee_name", "")
+    job_title = data.get("job_title", "")
+    role = data.get("role", "employee")  # Default to "employee" if not provided
+    actor_info = {
+        "employee_id": employee_id,
+        "display_name": employee_name,  # Use display_name per spec
+        "job_title": job_title,
+        "role": role,
+    }
+    actor_var.set(actor_info)
+
     graph = app.state.hr_graph
 
     # 1) RESUME PATH (user provided feedback)
     if "resume" in data:
-        # resume can be a bool or a JSON object, e.g. {"approved": True, "comment": "..."}
+        # Log resume request (without sensitive text)
+        audit_hitl_resume_received(data.get("resume", {}))
+        
         result = await graph.ainvoke(Command(resume=data["resume"]), config=config)
 
     # 2) NEW RUN PATH
     else:
         query = data.get("query", "")
-        employee_name = data.get("employee_name", "")
-        job_title = data.get("job_title", "")
         document_name = data.get("document_name", "")
+        selected_scopes = data.get("selected_scopes", ["all"])
+        
+        # Get client info
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+        
+        # Log request received
+        audit_request_received(query, selected_scopes, client_ip, user_agent)
 
         result = await graph.ainvoke(
             {
@@ -146,21 +179,52 @@ async def answer_query(request: Request):
             config=config,
         )
 
+    # Calculate response time
+    response_time_ms = int((time.time() - start_time) * 1000)
+
     # If graph is paused for HITL, return that to frontend
     if "__interrupt__" in result and result["__interrupt__"]:
-
         # result["__interrupt__"] is often a list of Interrupt objects; payload is in .value
         interrupts = []
+        interrupt_types = []
         for it in result["__interrupt__"]:
-            interrupts.append(getattr(it, "value", it))
+            interrupt_value = getattr(it, "value", it)
+            interrupts.append(interrupt_value)
+            if isinstance(interrupt_value, dict):
+                interrupt_types.append(interrupt_value.get("type", "unknown"))
+        
+        # Set interrupt_id if available
+        if interrupts and isinstance(interrupts[0], dict):
+            interrupt_id = interrupts[0].get("id") or new_request_id()
+            interrupt_id_var.set(interrupt_id)
+        
+        # Log response sent (interrupt)
+        audit_response_sent(
+            "interrupt",
+            response_time_ms=response_time_ms,
+            model_provider="groq",  # TODO: Get from actual LLM config
+            model_name="openai/gpt-oss-120b"
+        )
+        
         return {
             "type": "interrupt",
             "interrupts": interrupts,
         }
 
-
     # Otherwise normal completion
-    msg = result["messages"][-1].content
+    msg = result["messages"][-1].content if result.get("messages") else ""
+    msg_preview = str(msg)[:200] if msg else None  # Preview first 200 chars
+    
+    # Log response sent (final)
+    audit_response_sent(
+        "final",
+        message_preview=msg_preview,
+        actions_emitted=[],
+        response_time_ms=response_time_ms,
+        model_provider="groq",  # TODO: Get from actual LLM config
+        model_name="openai/gpt-oss-120b"
+    )
+    
     return {"type": "final", "data": msg}
 
 

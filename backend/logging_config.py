@@ -14,6 +14,15 @@ from datetime import datetime
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
+# Import audit module to ensure audit logger is initialized
+try:
+    from src.hr_agent.audit import log_execution_separator
+    # Audit logger is set up at module import time
+    # We'll log the separator after logging is configured
+except ImportError:
+    # If audit module isn't available, continue without it
+    log_execution_separator = None
+
 
 class FlushingRotatingFileHandler(RotatingFileHandler):
     """
@@ -119,6 +128,14 @@ def setup_logging(log_dir: str = "logs") -> None:
     # Flush handlers to ensure separator is written immediately
     for handler in root_logger.handlers:
         handler.flush()
+    
+    # Log audit execution separator if audit module is available
+    if log_execution_separator is not None:
+        try:
+            log_execution_separator()
+        except Exception as e:
+            # Don't fail if audit logging fails
+            root_logger.warning(f"Failed to log audit execution separator: {e}")
 
 
 def get_log_path(log_dir: str = "logs") -> Path:

@@ -7,21 +7,28 @@ from src.hr_agent.logging_utils import *
 from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
 from src.hr_agent.prompts import EXECUTION_PROMPT, HITL_APPROVAL_PROMPT
+from src.hr_agent.audit_helpers import *
 
 logger = logging.getLogger(__name__)
 
 class HR_Node:
+    
     def __init__(self, llm, tools):
         """
         Initialize the HR_Node with an LLM and tools.
         """
         self.llm = llm
+
         # MCP tools (e.g., execute_sql, list_tables) passed in from app/graphbuilder
         self.tools = tools
+        
         # RAG tools implemented in this service
         self.rag_tools = [get_document_context, list_employee_documents]
+        
         # Bind both MCP tools and RAG tools to the LLM for the main execute node
         self.llm_with_tools = llm.bind_tools(self.tools + self.rag_tools)
+
+
       
     def check_if_write_operation(self, state: State) -> State:
         """
@@ -71,7 +78,10 @@ class HR_Node:
                     log_check_write_operation_result(name, is_write, sql_query, "hitl_approval")
                     return "hitl_approval"
                 else:
+                    # Log db_read (best-effort, before actual execution)
                     log_check_write_operation_result(name, is_write, sql_query, "tools_hr")
+                    if sql_query:
+                        audit_sql_operation(sql_query)
         
         log_check_write_operation_result("", False, "", "tools_hr")
         return "tools_hr"
@@ -149,9 +159,11 @@ class HR_Node:
         # Extract tool calls to log SQL query
         tool_calls = extract_tool_calls(last_message)
         sql_query = ""
+        tool_call_id = None
         for call in tool_calls:
             if call.get("name") == "execute_sql":
                 sql_query = call.get("args", {}).get("query", "")
+                tool_call_id = call.get("id")
                 break
         
         log_hitl_approval_request(sql_query)
@@ -164,6 +176,9 @@ class HR_Node:
         response = self.llm.invoke(messages)
         
         log_hitl_approval_explanation(response.content)
+        
+        # Log db_write_proposed
+        audit_db_write_proposed(sql_query, tool_call_id, response.content)
 
         # Pause here and return this payload to FastAPI/client
         decision = interrupt({
@@ -211,6 +226,9 @@ class HR_Node:
         approved = bool(response.approved)
         
         log_handle_hitl_approval_decision(approved)
+        
+        # Log db_write_decision
+        audit_db_write_decision(tool_call_id, approved, user_feedback)
 
         # NOTE: execute_sql must return a ToolMessage with the SAME tool_call_id as the original tool_use.
         if approved:
@@ -221,6 +239,9 @@ class HR_Node:
                 tool_result = await execute_sql_tool.ainvoke({"query": sql_query})
                 
                 log_handle_hitl_approval_execution(sql_query, True, str(tool_result))
+                
+                # Log db_write_executed (success)
+                audit_db_write_executed_success(tool_call_id, sql_query, tool_result)
                 
                 tool_message = ToolMessage(
                     content=str(tool_result),
@@ -233,6 +254,9 @@ class HR_Node:
             except Exception as e:
                 error_message = f"Error executing SQL query: {type(e).__name__}: {e}"
                 log_handle_hitl_approval_execution(sql_query, False, None, error_message)
+                
+                # Log db_write_executed (error)
+                audit_db_write_executed_error(tool_call_id, sql_query, e)
 
                 # Still return a ToolMessage matching the same tool_call_id
                 # so the next LLM call doesn't crash due to missing tool_result.
@@ -245,6 +269,9 @@ class HR_Node:
 
         else:
             log_handle_hitl_approval_rejection()
+            
+            # Log db_write_executed (blocked)
+            audit_db_write_executed_blocked(tool_call_id, sql_query)
             
             # User rejected the operation -> MUST still return a ToolMessage for that tool_call_id
             tool_message = ToolMessage(

@@ -8,6 +8,7 @@ from langchain_core.tools import tool
 
 from src.services.helpers import get_supabase_client
 from src.hr_agent.utils import get_content, format_structured_data
+from src.hr_agent.audit_helpers import *
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,27 @@ def get_document_context(document_id: str) -> str:
         - Document text content (for PDFs/text files)
         - Structured data rows (for Excel files) formatted as "Row N: column1=value1 | column2=value2 | ..."
     """
+    # Fetch document metadata for audit logging
+    document_title = None
+    owner_employee_id = None
+    try:
+        supabase = get_supabase_client()
+        response = supabase.table("documents_1").select("title, owner_employee_id").eq("id", document_id).execute()
+        if response.data and len(response.data) > 0:
+            document_title = response.data[0].get("title")
+            owner_employee_id = response.data[0].get("owner_employee_id")
+    except Exception:
+        pass  # Continue even if metadata fetch fails
+    
+    # Log document access
+    audit_document_accessed(
+        document_id,
+        document_title=document_title,
+        owner_employee_id=owner_employee_id,
+        reason="Answer user query",
+        scope="documents"
+    )
+    
     content_text, content_structured = get_content(document_id)
     
     # Format for LLM
@@ -73,11 +95,20 @@ def list_employee_documents(employee_id: str, limit: int = 25) -> Dict[str, Any]
             return []
 
         logger.info(f"list_employee_documents - Documents query response: {response.data}")
+        
+        # Log document listing access
+        document_ids = [doc.get("id") for doc in response.data] if response.data else []
+        document_titles = [doc.get("title") for doc in response.data] if response.data else []
+        audit_documents_listed(employee_id, document_ids, document_titles)
 
         return response.data
 
     except Exception as e:
         error_msg = f"Failed to list employee documents: {str(e)}"
         logger.error(error_msg, exc_info=True)
+        
+        # Log tool error
+        audit_tool_error_simple("list_employee_documents", e)
+        
         return []
 
