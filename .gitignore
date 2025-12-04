@@ -44,5 +44,4 @@ build/
 dist/
 
 .langgraph_api/
-
-
+northstar_hr_policy_docs/

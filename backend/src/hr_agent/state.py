@@ -4,10 +4,6 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
-        
-class UserFeedbackOutput(BaseModel):
-    approved: bool = Field(description="Whether the user has approved the write operation")
-
 
 class State(TypedDict):
     """

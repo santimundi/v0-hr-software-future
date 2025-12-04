@@ -461,6 +461,78 @@ def audit_documents_listed(
     )
 
 
+def audit_policy_accessed(
+    policy_id: str,
+    policy_title: Optional[str] = None,
+    tool_name: str = "get_company_policy_context",
+    reason: Optional[str] = None,
+    scope: Optional[str] = None
+) -> None:
+    """
+    Audit log when a company policy is accessed.
+    
+    Args:
+        policy_id: The UUID of the policy accessed
+        policy_title: Optional policy title
+        tool_name: Name of the tool that accessed the policy
+        reason: Optional reason for access
+        scope: Optional scope (e.g., "policies")
+    """
+    resource = {
+        "type": "policy",
+        "policy_id": policy_id,
+    }
+    
+    if policy_title:
+        resource["title"] = policy_title
+    
+    access = {
+        "tool": tool_name,
+    }
+    
+    if reason:
+        access["reason"] = reason
+    if scope:
+        access["scope"] = scope
+    
+    data = {
+        "resource": resource,
+        "access": access,
+        "result": {"status": "success"},
+    }
+    
+    audit_event(
+        "policy_accessed",
+        component="tool",
+        data=data
+    )
+
+
+def audit_policies_listed(
+    policy_ids: list,
+    policy_titles: list,
+    tool_name: str = "list_company_policies"
+) -> None:
+    """
+    Audit log when company policies are listed.
+    
+    Args:
+        policy_ids: List of policy IDs
+        policy_titles: List of policy titles
+        tool_name: Name of the tool that listed the policies
+    """
+    audit_event(
+        "policies_listed",
+        component="tool",
+        data={
+            "tool_name": tool_name,
+            "policy_count": len(policy_ids),
+            "policy_ids": policy_ids,
+            "policy_titles": policy_titles,
+        }
+    )
+
+
 def audit_tool_error_simple(tool_name: str, error: Exception) -> None:
     """
     Audit log when a tool execution fails (simple version without latency/SQL).

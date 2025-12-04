@@ -492,8 +492,8 @@ function ChatPageContent() {
           <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <div className="flex-1 space-y-3">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="flex-1 space-y-3 min-w-0">
+            <div className="prose prose-sm dark:prose-invert max-w-none break-words">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -534,9 +534,11 @@ function ChatPageContent() {
                   },
                   pre: (props) => <>{props.children}</>,
                   table: (props) => (
-                    <table className="min-w-full border-collapse text-sm my-3">
-                      {props.children}
-                    </table>
+                    <div className="overflow-x-auto my-3">
+                      <table className="min-w-full border-collapse text-sm">
+                        {props.children}
+                      </table>
+                    </div>
                   ),
                   thead: (props) => (
                     <thead className="border-b border-muted-foreground/40 bg-muted/40">
@@ -555,7 +557,7 @@ function ChatPageContent() {
                     </tr>
                   ),
                   td: (props) => (
-                    <td className="px-3 py-1 align-top whitespace-nowrap">
+                    <td className="px-3 py-1 align-top break-words">
                       {props.children}
                     </td>
                   ),

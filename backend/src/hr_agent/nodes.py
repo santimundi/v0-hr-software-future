@@ -1,8 +1,8 @@
 import logging
 from langgraph.graph import END
 from langgraph.types import interrupt
-from src.hr_agent.tools import get_document_context, list_employee_documents
-from src.hr_agent.state import State, UserFeedbackOutput
+from src.hr_agent.tools import get_rag_tools
+from src.hr_agent.state import State
 from src.hr_agent.logging_utils import *
 from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
@@ -12,7 +12,7 @@ from src.hr_agent.audit_helpers import *
 logger = logging.getLogger(__name__)
 
 class HR_Node:
-    
+
     def __init__(self, llm, tools):
         """
         Initialize the HR_Node with an LLM and tools.
@@ -23,7 +23,7 @@ class HR_Node:
         self.tools = tools
         
         # RAG tools implemented in this service
-        self.rag_tools = [get_document_context, list_employee_documents]
+        self.rag_tools = get_rag_tools()
         
         # Bind both MCP tools and RAG tools to the LLM for the main execute node
         self.llm_with_tools = llm.bind_tools(self.tools + self.rag_tools)
@@ -215,15 +215,13 @@ class HR_Node:
 
         log_handle_hitl_approval_tool_extraction(tool_call_id, tool_name, sql_query)
 
+        approved = False
 
-        messages = [
-            SystemMessage(content="Based on the feedback below, state whether the user has approved or rejected the write operation."),
-            HumanMessage(content=f"Feedback: {user_feedback}"),
-        ]
-
-        llm_with_structured_output = self.llm.with_structured_output(UserFeedbackOutput)
-        response = llm_with_structured_output.invoke(messages)
-        approved = bool(response.approved)
+        if user_feedback.lower() == "approved":
+            approved = True
+        elif user_feedback.lower() == "rejected":
+            approved = False
+        
         
         log_handle_hitl_approval_decision(approved)
         
