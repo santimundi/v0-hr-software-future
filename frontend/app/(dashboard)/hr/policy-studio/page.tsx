@@ -24,6 +24,9 @@ import { useRouter } from "next/navigation"
 import { useRole } from "@/lib/role-context"
 import { toast } from "sonner"
 import * as Utils from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
 
 interface TestScenario {
   id: string
@@ -47,6 +50,7 @@ interface PolicyClash {
   query: string
   hasConflict: boolean
   policiesChecked: string[]
+  answer: string
   conflictDetails?: {
     policy1: string
     policy2: string
@@ -230,29 +234,92 @@ export default function PolicyStudioPage() {
     if (!clashQuery.trim()) return
 
     setIsCheckingClash(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // Mock result
-    const hasConflict = clashQuery.toLowerCase().includes("contractor") || clashQuery.toLowerCase().includes("benefit")
-    const newClash: PolicyClash = {
-      id: String(clashResults.length + 1),
-      query: clashQuery,
-      hasConflict,
-      policiesChecked: ["Benefits Policy", "Contractor Policy", "Employee Handbook"],
-      conflictDetails: hasConflict
-        ? {
-            policy1: "Benefits Policy",
-            policy2: "Contractor Policy",
-            explanation: "Benefits Policy implies 'all employees' after 30 days, but Contractor Policy explicitly excludes contractors",
-            suggestedResolution: "To remove conflict, update Benefits Policy wording to 'full-time employees' OR add 'contractors excluded' line.",
-          }
-        : undefined,
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      const employeeId = Utils.normalizeEmployeeId(currentUser.id)
+
+      // Format the query with the required prefix
+      const formattedQuery = `Check whether the following phrase/question has contradictions across the different company policies involved:\n:${clashQuery.trim()}`
+
+      const requestBody = {
+        employee_id: employeeId,
+        employee_name: currentUser.name,
+        query: formattedQuery,
+        job_title: currentUser.title,
+        role: role,
+      }
+
+      const response = await fetch(`${backendUrl}/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      }).catch((fetchError) => {
+        throw new Error(
+          `Unable to connect to backend server. Please make sure the backend is running on port 8000.`
+        )
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      // Parse the response to extract answer and documents cited
+      const responseText = data.data || ""
+      
+      // Extract documents cited from the response
+      // The format is: "**Documents cited**" followed by a list of document names
+      const documentsCitedMatch = responseText.match(/\*\*Documents cited\*\*[\s\n]+(.*?)(?:\n\n|\n$|$)/is)
+      let policiesChecked: string[] = []
+      let answerText = responseText
+      
+      if (documentsCitedMatch) {
+        // Extract the documents list (could be comma-separated, bullet points, etc.)
+        const documentsSection = documentsCitedMatch[1].trim()
+        // Remove the documents cited section from the answer
+        answerText = responseText.replace(/\*\*Documents cited\*\*[\s\n]+.*$/is, "").trim()
+        
+        // Parse document names - handle various formats (comma-separated, bullet points, etc.)
+        policiesChecked = documentsSection
+          .split(/[,\n•\-\*]/)
+          .map(doc => doc.trim())
+          .filter(doc => doc.length > 0)
+      }
+      
+      // Determine if there's a conflict based on keywords in the response
+      const hasConflict = responseText.toLowerCase().includes("conflict") || 
+                         responseText.toLowerCase().includes("contradiction") ||
+                         responseText.toLowerCase().includes("disagree")
+
+      const newClash: PolicyClash = {
+        id: String(clashResults.length + 1),
+        query: clashQuery.trim(),
+        hasConflict,
+        policiesChecked,
+        answer: answerText,
+        conflictDetails: hasConflict ? {
+          policy1: "",
+          policy2: "",
+          explanation: answerText,
+          suggestedResolution: "",
+        } : undefined,
+      }
+
+      // Replace previous results with only the new one
+      setClashResults([newClash])
+      setClashQuery("")
+      toast.success("Clash check completed")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to check for clashes. Please try again.")
+      console.error("Error checking policy clash:", error)
+    } finally {
+      setIsCheckingClash(false)
     }
-
-    setClashResults([newClash, ...clashResults])
-    setClashQuery("")
-    setIsCheckingClash(false)
   }
 
   const getStatusIcon = (status?: string) => {
@@ -519,64 +586,127 @@ export default function PolicyStudioPage() {
 
               {/* Results */}
               <div className="space-y-4">
-                {clashResults.map((result) => (
-                  <Card key={result.id}>
+                {clashResults.length > 0 && clashResults[0] && (
+                  <Card key={clashResults[0].id}>
                     <CardContent className="p-4 space-y-4">
                       <div>
                         <p className="text-sm font-medium mb-2">Query</p>
-                        <p className="text-sm text-muted-foreground">{result.query}</p>
+                        <p className="text-sm text-muted-foreground">{clashResults[0].query}</p>
                       </div>
 
                       <div>
                         <p className="text-sm font-medium mb-2">Policies Checked</p>
-                        <div className="flex flex-wrap gap-2">
-                          {result.policiesChecked.map((policy, i) => (
-                            <Badge key={i} variant="secondary">
-                              {policy}
-                            </Badge>
-                          ))}
-                        </div>
+                        {clashResults[0].policiesChecked && clashResults[0].policiesChecked.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {clashResults[0].policiesChecked.map((policy, i) => (
+                              <Badge key={i} variant="secondary">
+                                {policy}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No policies listed in response</p>
+                        )}
                       </div>
 
                       <div>
-                        <p className="text-sm font-medium mb-2">Result</p>
-                        {result.hasConflict ? (
-                          <div className="space-y-3">
-                            <Badge className="bg-destructive/10 text-destructive">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Conflict Detected
-                            </Badge>
-                            {result.conflictDetails && (
-                              <div className="space-y-3 mt-3">
-                                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                                  <p className="text-xs font-medium mb-1">{result.conflictDetails.policy1}</p>
-                                  <p className="text-sm">"All employees are eligible for dental benefits after 30 days"</p>
-                                </div>
-                                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                                  <p className="text-xs font-medium mb-1">{result.conflictDetails.policy2}</p>
-                                  <p className="text-sm">"Contractors are explicitly excluded from employee benefits"</p>
-                                </div>
-                                <div className="p-3 bg-muted rounded-lg">
-                                  <p className="text-xs font-medium mb-1">Explanation</p>
-                                  <p className="text-sm">{result.conflictDetails.explanation}</p>
-                                </div>
-                                <div className="p-3 bg-accent rounded-lg">
-                                  <p className="text-xs font-medium mb-1">Suggested Resolution</p>
-                                  <p className="text-sm">{result.conflictDetails.suggestedResolution}</p>
-                                </div>
-                              </div>
-                            )}
+                        <p className="text-sm font-medium mb-2">Answer</p>
+                        <div className="p-4 bg-muted rounded-lg">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                              components={{
+                                table: (props) => (
+                                  <div className="overflow-x-auto my-3">
+                                    <table className="min-w-full border-collapse text-sm border border-border rounded-md">
+                                      {props.children}
+                                    </table>
+                                  </div>
+                                ),
+                                thead: (props) => (
+                                  <thead className="border-b border-border bg-muted/50">
+                                    {props.children}
+                                  </thead>
+                                ),
+                                th: (props) => (
+                                  <th className="px-3 py-2 text-left font-semibold align-bottom border-r border-border last:border-r-0">
+                                    {props.children}
+                                  </th>
+                                ),
+                                tbody: (props) => <tbody>{props.children}</tbody>,
+                                tr: (props) => (
+                                  <tr className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                                    {props.children}
+                                  </tr>
+                                ),
+                                td: (props) => (
+                                  <td className="px-3 py-2 align-top break-words border-r border-border/30 last:border-r-0">
+                                    {props.children}
+                                  </td>
+                                ),
+                                code: (props) => {
+                                  const { children, className } = props
+                                  const isInline = !className
+                                  return isInline ? (
+                                    <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
+                                      {children}
+                                    </code>
+                                  ) : (
+                                    <code className={className}>{children}</code>
+                                  )
+                                },
+                                pre: (props) => (
+                                  <pre className="overflow-x-auto p-4 rounded-lg bg-muted border border-border my-3">
+                                    {props.children}
+                                  </pre>
+                                ),
+                                ul: (props) => (
+                                  <ul className="list-disc list-inside my-2 space-y-1">
+                                    {props.children}
+                                  </ul>
+                                ),
+                                ol: (props) => (
+                                  <ol className="list-decimal list-inside my-2 space-y-1">
+                                    {props.children}
+                                  </ol>
+                                ),
+                                li: (props) => (
+                                  <li className="ml-4">{props.children}</li>
+                                ),
+                                p: (props) => (
+                                  <p className="my-2 leading-relaxed">{props.children}</p>
+                                ),
+                                h1: (props) => (
+                                  <h1 className="text-2xl font-bold mt-4 mb-2">{props.children}</h1>
+                                ),
+                                h2: (props) => (
+                                  <h2 className="text-xl font-semibold mt-3 mb-2">{props.children}</h2>
+                                ),
+                                h3: (props) => (
+                                  <h3 className="text-lg font-semibold mt-2 mb-1">{props.children}</h3>
+                                ),
+                                strong: (props) => (
+                                  <strong className="font-semibold">{props.children}</strong>
+                                ),
+                                em: (props) => (
+                                  <em className="italic">{props.children}</em>
+                                ),
+                                blockquote: (props) => (
+                                  <blockquote className="border-l-4 border-primary pl-4 my-2 italic text-muted-foreground">
+                                    {props.children}
+                                  </blockquote>
+                                ),
+                              }}
+                            >
+                              {clashResults[0].answer}
+                            </ReactMarkdown>
                           </div>
-                        ) : (
-                          <Badge className="bg-success/10 text-success">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            No Conflict Found
-                          </Badge>
-                        )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )}
 
                 {clashResults.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">

@@ -27,7 +27,7 @@ class TestScenarioResult(BaseModel):
     )
     issue: Optional[str] = Field(
         default=None,
-        description="Description of the issue found (required for 'ambiguous' or 'conflict' status)"
+        description="For 'clear' status, a brief explanation of why the policy yields a consistent answer, for 'ambiguous/conflict' status, a description of the issue found"
     )
     suggested_fix: Optional[str] = Field(
         default=None,

@@ -168,6 +168,7 @@ You have access to the following tools for this task:
 **For Each Scenario, Provide:**
 - A list of ALL policy sections/documents you checked (be specific with section numbers and document names)
 - Your classification (Clear/Ambiguous/Conflict) with detailed reasoning
+- For **Clear**: Explain why it is clear - quote the specific policy sections that provide the answer and explain what the document(s) say
 - For **Ambiguous**: Clearly describe what is unclear or missing, and provide a specific suggested fix
 - For **Conflict**: Identify the conflicting policies by name, quote the exact conflicting clauses, and provide a suggested resolution
 
