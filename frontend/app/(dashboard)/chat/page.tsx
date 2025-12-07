@@ -36,6 +36,7 @@ import { useRole } from "@/lib/role-context"
 import * as MockData from "@/lib/mock-data"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
 
 const sourceIcons: Record<string, typeof FileText> = {
   policy: FileText,
@@ -45,7 +46,7 @@ const sourceIcons: Record<string, typeof FileText> = {
 }
 
 const sourceColors: Record<string, string> = {
-  policy: "bg-chart-1/10 text-chart-1",
+  policy: "bg-primary/10 text-primary",
   document: "bg-chart-2/10 text-chart-2",
   hris: "bg-chart-3/10 text-chart-3",
   "manager-notes": "bg-chart-4/10 text-chart-4",
@@ -496,6 +497,7 @@ function ChatPageContent() {
             <div className="prose prose-sm dark:prose-invert max-w-none break-words">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 components={{
                   code: (props: any) => {
                     const { inline, className, children } = props
@@ -829,7 +831,7 @@ function ChatPageContent() {
                           handleSendMessage()
                         }
                       }}
-                      placeholder="Ask HR Copilot anything..."
+                      placeholder="Ask AI assistant anything..."
                       className="min-h-[60px] resize-none pr-12"
                       disabled={isLoading}
                     />

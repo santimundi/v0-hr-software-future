@@ -10,26 +10,16 @@ out/
 
 # Python
 __pycache__/
-*.py[cod]
-*.pyc
 .venv/
 venv/
 env/
-*.egg-info/
-dist/
 
 
+.vscode/
 
 # Environment variables
 .env
 .env*.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
 
 # Logs
 *.log
@@ -45,3 +35,7 @@ dist/
 
 .langgraph_api/
 northstar_hr_policy_docs/
+upload_company_doc.py
+draft_test_cases.md
+test_cvs/
+notes.txt

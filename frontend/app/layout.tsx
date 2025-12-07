@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "HR Copilot - HR of the Future",
+  title: "AIdeology HR - HR of the Future",
   description: "AI-powered HR assistant with permissions, citations, and audit trails",
     generator: 'v0.app'
 }
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased bg-background text-foreground">
         {children}
         <Analytics />
       </body>

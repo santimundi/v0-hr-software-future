@@ -113,9 +113,9 @@ export interface Benefit {
 // Mock Users
 export const users: User[] = [
   {
-    id: "EMP-001",
-    name: "Sarah Chen",
-    email: "sarah.chen@company.com",
+    id: "EMP000001",
+    name: "Layla Haddid",
+    email: "layla.haddad@company.com",
     role: "hr-admin",
     department: "Human Resources",
     location: "New York",
@@ -123,35 +123,35 @@ export const users: User[] = [
     startDate: "2019-01-10",
     contractType: "Full-time",
     salary: 145000,
-    title: "VP of People",
+    title: "HR Director",
     skills: ["HR Strategy", "Compliance", "Benefits Administration", "Employee Relations"],
   },
   {
-    id: "EMP-002",
+    id: "EMP000002",
     name: "Alex Rivera",
     email: "alex.rivera@company.com",
     role: "manager",
     department: "Engineering",
     location: "San Francisco",
-    manager: "Sarah Chen",
-    managerId: "EMP-001",
+    manager: "Layla Haddid",
+    managerId: "EMP000001",
     avatar: "/professional-man-avatar.png",
     startDate: "2020-06-01",
     contractType: "Full-time",
     salary: 175000,
     title: "Engineering Manager",
     skills: ["Leadership", "Agile", "System Design", "Team Building"],
-    directReports: ["EMP-005"],
+    directReports: ["EMP000005"],
   },
   {
-    id: "EMP-005",
+    id: "EMP000005",
     name: "Emma Johnson",
     email: "emma.johnson@company.com",
     role: "employee",
     department: "Engineering",
     location: "San Francisco",
     manager: "Alex Rivera",
-    managerId: "EMP-002",
+    managerId: "EMP000002",
     avatar: "/professional-woman-avatar.png",
     startDate: "2022-03-15",
     contractType: "Full-time",
@@ -297,7 +297,7 @@ export const documents: Document[] = [
     type: "Contract",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["contract", "legal"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: emma_johnson_employment_agreement",
     keyFields: {
       "File Name": "emma_johnson_employment_agreement.pdf",
@@ -312,7 +312,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["health", "insurance"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: health_insurance_details_northstar",
     keyFields: {
       "File Name": "health_insurance_details_northstar.pdf",
@@ -327,7 +327,7 @@ export const documents: Document[] = [
     type: "Payslip",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["payslip"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: payslip_emma_johnson",
     keyFields: {
       "File Name": "payslip_emma_johnson.pdf",
@@ -342,7 +342,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["policy"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: remote_work_policy",
     keyFields: {
       "File Name": "remote_work_policy.pdf",
@@ -357,7 +357,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["policy"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: pto_and_leave_policy",
     keyFields: {
       "File Name": "pto_and_leave_policy.pdf",
@@ -372,7 +372,7 @@ export const documents: Document[] = [
     type: "Benefits",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["benefits"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: benefits_enrollment_guide",
     keyFields: {
       "File Name": "benefits_enrollment_guide.pdf",
@@ -387,7 +387,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["policy"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded policy document: code_of_conduct",
     keyFields: {
       "File Name": "code_of_conduct.pdf",
@@ -402,7 +402,7 @@ export const documents: Document[] = [
     type: "timesheet",
     uploadDate: "2024-11-29T18:20:00Z",
     tags: ["timesheet", "time-tracking"],
-    userId: "EMP-005",
+    userId: "EMP000005",
     aiSummary: "Uploaded timesheet document: timesheet",
     keyFields: {
       "File Name": "timesheet.xlsx",
@@ -417,7 +417,7 @@ export const documents: Document[] = [
     type: "Performance",
     uploadDate: "2025-12-01T23:03:00Z",
     tags: ["work"],
-    userId: "EMP-002",
+    userId: "EMP000002",
     aiSummary: "Uploaded performance document: manager_1on1_templates",
     keyFields: {
       "File Name": "manager_1on1_templates.pdf",
@@ -432,7 +432,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2025-12-01T23:02:00Z",
     tags: ["policy"],
-    userId: "EMP-002",
+    userId: "EMP000002",
     aiSummary: "Uploaded policy document: incident_escalation_playbook",
     keyFields: {
       "File Name": "incident_escalation_playbook.pdf",
@@ -447,7 +447,7 @@ export const documents: Document[] = [
     type: "Performance",
     uploadDate: "2025-12-01T23:01:00Z",
     tags: ["projects"],
-    userId: "EMP-002",
+    userId: "EMP000002",
     aiSummary: "Uploaded performance document: project_tracking_alex_rivera",
     keyFields: {
       "File Name": "project_tracking_alex_rivera.xlsx",
@@ -462,7 +462,7 @@ export const documents: Document[] = [
     type: "Policy",
     uploadDate: "2025-12-01T23:01:00Z",
     tags: ["policy"],
-    userId: "EMP-002",
+    userId: "EMP000002",
     aiSummary: "Uploaded policy document: engineering_manager_handbook_alex_rivera",
     keyFields: {
       "File Name": "engineering_manager_handbook_alex_rivera.pdf",
@@ -477,7 +477,7 @@ export const documents: Document[] = [
     type: "Payslip",
     uploadDate: "2025-12-01T23:00:00Z",
     tags: ["payslip"],
-    userId: "EMP-002",
+    userId: "EMP000002",
     aiSummary: "Uploaded payslip document: alex_rivera_payslip_2026_01",
     keyFields: {
       "File Name": "alex_rivera_payslip_2026_01.pdf",
@@ -492,7 +492,7 @@ export const documents: Document[] = [
 export const timeOffRequests: TimeOffRequest[] = [
   {
     id: "pto-001",
-    userId: "EMP-005",
+    userId: "EMP000005",
     type: "annual",
     startDate: "2024-12-23",
     endDate: "2024-12-27",
@@ -502,7 +502,7 @@ export const timeOffRequests: TimeOffRequest[] = [
   },
   {
     id: "pto-002",
-    userId: "EMP-005",
+    userId: "EMP000005",
     type: "sick",
     startDate: "2024-11-05",
     endDate: "2024-11-05",
@@ -512,7 +512,7 @@ export const timeOffRequests: TimeOffRequest[] = [
   },
   {
     id: "pto-003",
-    userId: "EMP-005",
+    userId: "EMP000005",
     type: "annual",
     startDate: "2025-01-20",
     endDate: "2025-01-24",
@@ -526,7 +526,7 @@ export const timeOffRequests: TimeOffRequest[] = [
 export const auditEvents: AuditEvent[] = [
   {
     id: "audit-001",
-    userId: "EMP-005",
+    userId: "EMP000005",
     userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
@@ -540,7 +540,7 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-002",
-    userId: "EMP-005",
+    userId: "EMP000005",
     userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
@@ -554,7 +554,7 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-003",
-    userId: "EMP-002",
+    userId: "EMP000002",
     userName: "Alex Rivera",
     userRole: "manager",
     action: "query",
@@ -568,8 +568,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-004",
-    userId: "EMP-001",
-    userName: "Sarah Chen",
+    userId: "EMP000001",
+    userName: "Layla Haddid",
     userRole: "hr-admin",
     action: "document_generation",
     query: "Generate employment verification letter for Sarah Chen",
@@ -582,7 +582,7 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-005",
-    userId: "EMP-002",
+    userId: "EMP000002",
     userName: "Alex Rivera",
     userRole: "manager",
     action: "approval",
@@ -596,8 +596,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-006",
-    userId: "EMP-001",
-    userName: "Sarah Chen",
+    userId: "EMP000001",
+    userName: "Layla Haddid",
     userRole: "hr-admin",
     action: "policy_update",
     query: "Update Annual Leave Policy to v3.2",
@@ -610,7 +610,7 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-007",
-    userId: "EMP-005",
+    userId: "EMP000005",
     userName: "Emma Johnson",
     userRole: "employee",
     action: "query",
@@ -624,8 +624,8 @@ export const auditEvents: AuditEvent[] = [
   },
   {
     id: "audit-008",
-    userId: "EMP-001",
-    userName: "Sarah Chen",
+    userId: "EMP000001",
+    userName: "Layla Haddid",
     userRole: "hr-admin",
     action: "bulk_export",
     query: "Export all employee time off balances",
@@ -776,7 +776,7 @@ export const hrisData: Record<string, {
   lastRaise: string;
   performanceRating: string;
 }> = {
-  "EMP-001": {
+  "EMP000001": {
     timeOffBalance: {
       annual: 20,
       sick: 10,
@@ -787,7 +787,7 @@ export const hrisData: Record<string, {
     lastRaise: "2024-01-01",
     performanceRating: "Exceeds Expectations",
   },
-  "EMP-002": {
+  "EMP000002": {
     timeOffBalance: {
       annual: 18,
       sick: 10,
@@ -798,7 +798,7 @@ export const hrisData: Record<string, {
     lastRaise: "2024-06-01",
     performanceRating: "Exceeds Expectations",
   },
-  "EMP-005": {
+  "EMP000005": {
     timeOffBalance: {
       annual: 12,
       sick: 8,

@@ -1,12 +1,14 @@
 import logging
+import re
+import time
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.graph import END
 from langgraph.types import interrupt
 from src.hr_agent.tools import get_rag_tools
-from src.hr_agent.state import State
+from src.hr_agent.state import PolicyTestResults, QuerySummaryOutput, State
 from src.hr_agent.logging_utils import *
-from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql
-from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
-from src.hr_agent.prompts import EXECUTION_PROMPT, HITL_APPROVAL_PROMPT
+from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql, serialize_pydantic_model
+from src.hr_agent.prompts import *
 from src.hr_agent.audit_helpers import *
 
 logger = logging.getLogger(__name__)
@@ -27,9 +29,134 @@ class HR_Node:
         
         # Bind both MCP tools and RAG tools to the LLM for the main execute node
         self.llm_with_tools = llm.bind_tools(self.tools + self.rag_tools)
-
+        
 
       
+    def summarize_query_topic(self, state: State) -> State:
+        """
+        Generate a short, precise topic summary (3-6 words) for the user query.
+        This runs before the main processing to capture the query topic for audit logging.
+        
+        Args:
+            state: The current state containing the user query
+        
+        Returns:
+            Updated state with query_topic field populated
+        """       
+        llm_with_structured_output = self.llm.with_structured_output(QuerySummaryOutput)
+         
+        messages = [
+            SystemMessage(content=QUERY_TOPIC_SUMMARIZATION_PROMPT),
+            HumanMessage(content=state["user_query"])
+        ]
+        
+        response = llm_with_structured_output.invoke(messages)
+
+        logger.info(f"Query topic summarization response: {response}")
+        logger.info(f"Policy studio: {response.policy_studio}")
+
+        return {
+            "query_topic": response.query_topic.strip(), 
+            "policy_studio": response.policy_studio
+        }
+    
+
+    def route_input(self, state: State) -> str:
+        """
+        Route the input to the appropriate node based on the user query.
+        Returns the name of the next node to execute.
+        """
+        if state.get("policy_studio", False):
+            logger.info("Routing to policy_studio node")
+            return "policy_studio"
+        else:
+            logger.info("Routing to process_query node")
+            return "process_query"
+
+    
+    def policy_studio(self, state: State) -> State:
+        """
+        This node is called when the user query is a policy studio test case.
+        It evaluates the test case against the company policy documents using tools.
+        """
+        log_node_entry("policy_studio")
+        
+        query = state.get("user_query", "")
+        query_preview = query[:200] if query else None
+        
+        # Count scenarios from query
+        scenario_matches = re.findall(r'^\d+\.', query, re.MULTILINE)
+        num_scenarios = len(scenario_matches) if scenario_matches else 1
+        
+        logger.info(f"Policy studio: evaluating {num_scenarios} scenario(s)")
+        audit_policy_studio_started(num_scenarios, query_preview)
+        
+        try:
+            messages = [
+                SystemMessage(content=POLICY_STUDIO_TESTING_PROMPT),
+                HumanMessage(content=query),
+                *state["messages"]
+            ]
+            response = self.llm_with_tools.invoke(messages)
+            
+            logger.info("Policy studio: analysis completed")
+            return {"messages": [response]}
+        except Exception as e:
+            logger.error(f"Policy studio evaluation failed: {str(e)}", exc_info=True)
+            audit_policy_studio_error(num_scenarios, e, query_preview)
+            raise
+
+    
+    def parse_studio_results(self, state: State) -> State:
+        """
+        This node parses the policy studio analysis results and structures them into the required format.
+        It takes the analysis from policy_studio node and the original query, then extracts structured data.
+        """
+        log_node_entry("parse_studio_results")
+
+        user_query = state["user_query"]
+        analysis_content = state["messages"][-1].content
+       
+       
+
+        # Count scenarios for audit
+        scenario_matches = re.findall(r'^\d+\.', user_query, re.MULTILINE)
+        num_scenarios = len(scenario_matches) if scenario_matches else 1
+
+        logger.info(f"Parsing policy studio results for {num_scenarios} scenario(s)")
+
+        start_time = time.time()
+
+        try:
+            llm_with_structured_output = self.llm.with_structured_output(PolicyTestResults, method="json_schema")
+            messages = [
+                SystemMessage(content=POLICY_STUDIO_PARSING_PROMPT),
+                HumanMessage(content=f"Original Query:\n{user_query}\n\nAnalysis Results:\n{analysis_content}"),
+            ]
+            response = llm_with_structured_output.invoke(messages)
+            
+            serialized_results = serialize_pydantic_model(response.results)
+            
+            # Generate results summary
+            results_summary = {}
+            for result in serialized_results:
+                status = result.get("status", "unknown")
+                results_summary[status] = results_summary.get(status, 0) + 1
+            
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"Policy studio parsing completed: {latency_ms}ms, results: {results_summary}")
+            audit_policy_studio_completed(num_scenarios, results_summary, latency_ms)
+            
+            return {"policy_test_results": serialized_results}
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Policy studio parsing failed after {latency_ms}ms: {str(e)}", exc_info=True)
+            audit_policy_studio_error(num_scenarios, e, user_query[:200] if user_query else None)
+            raise
+    
+    
+        
+
     def check_if_write_operation(self, state: State) -> State:
         """
         This is a router method. It checks if the last message in state contains a write operation (INSERT, UPDATE, DELETE, etc.).
@@ -107,6 +234,7 @@ class HR_Node:
         job_title = state.get("job_title", "")
         employee_id = state.get("employee_id", "")
         employee_name = state.get("employee_name", "")
+        document_name = state.get("document_name", "")
 
         # Log the combined input (without document context)
         log_execute_input(user_query, job_title, employee_id, employee_name)
@@ -118,6 +246,10 @@ class HR_Node:
         enhanced_query = user_query
         if job_title:
             enhanced_query = f"[User Job Title: {job_title}, Employee ID: {employee_id}, Employee Name: {employee_name}]\n\n{user_query}"
+        
+        # If document_name is provided, instruct the LLM to use it
+        if document_name:
+            enhanced_query = f"{enhanced_query}\n\n[IMPORTANT: The user is asking about a specific document named '{document_name}']"
         
         # If we have formatted_context from RAG, include it in the prompt
         if formatted_context:

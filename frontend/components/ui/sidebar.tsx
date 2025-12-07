@@ -84,6 +84,10 @@ function SidebarProvider({
 
       // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Also persist to localStorage for better reliability
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sidebar_state', openState ? 'expanded' : 'collapsed')
+      }
     },
     [setOpenProp, open],
   )

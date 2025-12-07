@@ -20,14 +20,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useRole } from "@/lib/role-context"
+import { useAskAi } from "@/lib/ask-ai-context"
 import * as MockData from "@/lib/mock-data"
-import * as Utils from "@/lib/utils"
+import { cn } from "@/lib/utils"
 
 const leaveTypes = [
-  { value: "annual", label: "Annual Leave", color: "bg-chart-1" },
-  { value: "sick", label: "Sick Leave", color: "bg-chart-2" },
-  { value: "personal", label: "Personal", color: "bg-chart-3" },
-  { value: "wfh", label: "Work From Home", color: "bg-chart-4" },
+  { value: "annual", label: "Annual Leave", color: "bg-primary" },
+  { value: "sick", label: "Sick Leave", color: "bg-primary" },
+  { value: "personal", label: "Personal", color: "bg-primary" },
+  { value: "wfh", label: "Work From Home", color: "bg-primary" },
 ]
 
 const statusColors: Record<string, string> = {
@@ -39,7 +40,8 @@ const statusColors: Record<string, string> = {
 
 export default function TimeOffPage() {
   const { role, currentUser } = useRole()
-  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP-005"]
+  const { openWithPrompt } = useAskAi()
+  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP000005"]
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -75,7 +77,7 @@ export default function TimeOffPage() {
                     {leaveTypes.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
-                          <div className={Utils.cn("h-2 w-2 rounded-full", type.color)} />
+                          <div className={cn("h-2 w-2 rounded-full", type.color)} />
                           {type.label}
                         </div>
                       </SelectItem>
@@ -130,9 +132,9 @@ export default function TimeOffPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-chart-1/10 border border-chart-1/20">
+              <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
                 <p className="text-sm text-muted-foreground">Annual Leave</p>
-                <p className="text-3xl font-bold text-chart-1">{userData.timeOffBalance.annual}</p>
+                <p className="text-3xl font-bold text-primary">{userData.timeOffBalance.annual}</p>
                 <p className="text-xs text-muted-foreground">days remaining</p>
               </div>
               <div className="p-4 rounded-xl bg-chart-2/10 border border-chart-2/20">
@@ -158,15 +160,37 @@ export default function TimeOffPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start text-sm bg-transparent" asChild>
-              <a href="/chat?prompt=Suggest best dates for 5 days off in December">Suggest best dates</a>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-sm bg-transparent"
+              onClick={() => openWithPrompt("Suggest best dates for 5 days off in December")}
+            >
+              Suggest best dates
             </Button>
-            <Button variant="outline" className="w-full justify-start text-sm bg-transparent" asChild>
-              <a href="/chat?prompt=Check if my leave request is policy compliant">Check policy compliance</a>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-sm bg-transparent"
+              onClick={() => openWithPrompt("Check if my leave request is policy compliant")}
+            >
+              Check policy compliance
             </Button>
-            <Button variant="outline" className="w-full justify-start text-sm bg-transparent" asChild>
-              <a href="/chat?prompt=Show team availability next month">View team availability</a>
-            </Button>
+            {role === "manager" || role === "hr-admin" ? (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-sm bg-transparent"
+                onClick={() => openWithPrompt("Show team availability for the next 60 days")}
+              >
+                Show team availability
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-sm bg-transparent"
+                onClick={() => openWithPrompt("Explain my leave balance and entitlements")}
+              >
+                Explain my leave balance
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -277,7 +301,7 @@ export default function TimeOffPage() {
               <TableBody>
                 {pendingApprovals.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell className="font-medium">Sarah Chen</TableCell>
+                    <TableCell className="font-medium">Omar Haddid</TableCell>
                     <TableCell className="capitalize">{request.type}</TableCell>
                     <TableCell>
                       {new Date(request.startDate).toLocaleDateString()} -{" "}

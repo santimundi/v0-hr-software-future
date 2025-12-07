@@ -12,7 +12,7 @@ import Link from "next/link"
 
 export default function ProfilePage() {
   const { currentUser, role } = useRole()
-  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP-005"]
+  const userData = MockData.hrisData[currentUser.id] || MockData.hrisData["EMP000005"]
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-5xl mx-auto">

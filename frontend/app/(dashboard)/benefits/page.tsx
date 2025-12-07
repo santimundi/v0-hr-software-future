@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Heart, Shield, Sparkles, DollarSign, Activity, CheckCircle } from "lucide-react"
+import { Heart, Shield, Sparkles, DollarSign, Activity, CheckCircle, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import * as MockData from "@/lib/mock-data"
+import { useRole } from "@/lib/role-context"
+import * as Utils from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
 
 const benefitIcons: Record<string, typeof Heart> = {
   Health: Heart,
@@ -17,26 +22,59 @@ const benefitIcons: Record<string, typeof Heart> = {
 }
 
 export default function BenefitsPage() {
+  const { currentUser, role } = useRole()
   const [question, setQuestion] = useState("")
   const [aiResponse, setAiResponse] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleAskQuestion = () => {
-    // Mock AI response
-    setAiResponse(`Based on your Benefits Overview policy (v2.5), here's a simple explanation:
+  const handleAskQuestion = async () => {
+    if (!question.trim() || isLoading) return
 
-**Your Health Insurance** covers you and your family for:
-- Doctor visits and checkups
-- Hospital stays
-- Prescription medications
-- Dental cleanings and fillings
-- Eye exams and glasses
+    setIsLoading(true)
+    setAiResponse(null)
 
-**Key Points:**
-- You're covered from day 1 of employment
-- No deductible for preventive care
-- $20 copay for regular doctor visits
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      const employeeId = Utils.normalizeEmployeeId(currentUser.id)
 
-*Source: Benefits Overview v2.5 - Section 1*`)
+      const requestBody = {
+        employee_id: employeeId,
+        employee_name: currentUser.name,
+        query: question.trim(),
+        job_title: currentUser.title,
+        role: role,
+      }
+
+      const response = await fetch(`${backendUrl}/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      
+      // Handle both final and interrupt responses
+      if (data.type === "final" && data.data) {
+        setAiResponse(data.data)
+      } else if (data.type === "interrupt" && data.interrupts && data.interrupts.length > 0) {
+        // For interrupts, show the explanation
+        const interrupt = data.interrupts[0]
+        setAiResponse(interrupt.explanation || "An action requires your approval.")
+      } else {
+        setAiResponse(data.data || "Sorry, I couldn't process your question.")
+      }
+    } catch (error: any) {
+      setAiResponse(`Error: ${error.message || "Failed to get response. Please try again."}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -108,9 +146,22 @@ export default function BenefitsPage() {
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={3}
               />
-              <Button className="w-full gap-2" onClick={handleAskQuestion}>
-                <Sparkles className="h-4 w-4" />
-                Explain My Benefits
+              <Button 
+                className="w-full gap-2" 
+                onClick={handleAskQuestion}
+                disabled={!question.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Asking...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Explain My Benefits
+                  </>
+                )}
               </Button>
 
               {aiResponse && (
@@ -122,9 +173,98 @@ export default function BenefitsPage() {
                         <div className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center">
                           <Sparkles className="h-3 w-3 text-primary" />
                         </div>
-                        <span className="text-sm font-medium">HR Copilot</span>
+                        <span className="text-sm font-medium">AI assistant</span>
                       </div>
-                      <div className="prose prose-sm dark:prose-invert whitespace-pre-wrap text-sm">{aiResponse}</div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            table: (props) => (
+                              <div className="overflow-x-auto my-3">
+                                <table className="min-w-full border-collapse text-sm border border-border rounded-md">
+                                  {props.children}
+                                </table>
+                              </div>
+                            ),
+                            thead: (props) => (
+                              <thead className="border-b border-border bg-muted/50">
+                                {props.children}
+                              </thead>
+                            ),
+                            th: (props) => (
+                              <th className="px-3 py-2 text-left font-semibold align-bottom border-r border-border last:border-r-0">
+                                {props.children}
+                              </th>
+                            ),
+                            tbody: (props) => <tbody>{props.children}</tbody>,
+                            tr: (props) => (
+                              <tr className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                                {props.children}
+                              </tr>
+                            ),
+                            td: (props) => (
+                              <td className="px-3 py-2 align-top break-words border-r border-border/30 last:border-r-0">
+                                {props.children}
+                              </td>
+                            ),
+                            code: (props) => {
+                              const { children, className } = props
+                              const isInline = !className
+                              return isInline ? (
+                                <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
+                                  {children}
+                                </code>
+                              ) : (
+                                <code className={className}>{children}</code>
+                              )
+                            },
+                            pre: (props) => (
+                              <pre className="overflow-x-auto p-4 rounded-lg bg-muted border border-border my-3">
+                                {props.children}
+                              </pre>
+                            ),
+                            ul: (props) => (
+                              <ul className="list-disc list-inside my-2 space-y-1">
+                                {props.children}
+                              </ul>
+                            ),
+                            ol: (props) => (
+                              <ol className="list-decimal list-inside my-2 space-y-1">
+                                {props.children}
+                              </ol>
+                            ),
+                            li: (props) => (
+                              <li className="ml-4">{props.children}</li>
+                            ),
+                            p: (props) => (
+                              <p className="my-2 leading-relaxed">{props.children}</p>
+                            ),
+                            h1: (props) => (
+                              <h1 className="text-2xl font-bold mt-4 mb-2">{props.children}</h1>
+                            ),
+                            h2: (props) => (
+                              <h2 className="text-xl font-semibold mt-3 mb-2">{props.children}</h2>
+                            ),
+                            h3: (props) => (
+                              <h3 className="text-lg font-semibold mt-2 mb-1">{props.children}</h3>
+                            ),
+                            strong: (props) => (
+                              <strong className="font-semibold">{props.children}</strong>
+                            ),
+                            em: (props) => (
+                              <em className="italic">{props.children}</em>
+                            ),
+                            blockquote: (props) => (
+                              <blockquote className="border-l-4 border-primary pl-4 my-2 italic text-muted-foreground">
+                                {props.children}
+                              </blockquote>
+                            ),
+                          }}
+                        >
+                          {aiResponse}
+                        </ReactMarkdown>
+                      </div>
                       <div className="flex items-center gap-2 pt-2">
                         <Badge variant="secondary" className="text-xs">
                           Policy

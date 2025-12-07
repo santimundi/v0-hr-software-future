@@ -7,7 +7,7 @@ from typing import Any, Dict
 from langchain_core.tools import tool
 
 from src.services.helpers import get_supabase_client
-from src.hr_agent.utils import get_content, format_structured_data
+from src.hr_agent.utils import get_employee_document_content, format_structured_data
 from src.hr_agent.audit_helpers import *
 
 
@@ -50,7 +50,7 @@ def get_document_context(document_id: str) -> str:
         scope="documents"
     )
     
-    content_text, content_structured = get_content(document_id)
+    content_text, content_structured = get_employee_document_content(document_id)
     
     # Format for LLM
     formatted_context = content_text if content_text else ""
@@ -67,21 +67,35 @@ def list_employee_documents(employee_id: str, limit: int = 25) -> Dict[str, Any]
     Query the employee_documents table to list the documents for a given employee ID.
     
     Args:
-        employee_id: The ID of the employee to list documents for
+        employee_id: The text employee ID (e.g., "EMP000005"), NOT the UUID
         limit: The maximum number of documents to list
     
     Returns:
-        A list of employee document IDs and their corresponding names
+        A list of employee document IDs and their corresponding names, or an error dict
     """
     try:
         supabase = get_supabase_client()
+
+        # Validate that employee_id is not a UUID (UUIDs are 36 chars with dashes)
+        # Text employee_ids are typically shorter (e.g., "EMP000005")
+        if len(employee_id) > 20 or '-' in employee_id:
+            error_msg = f"Invalid employee_id format. Expected text format (e.g., 'EMP000005'), but received what appears to be a UUID: '{employee_id}'. Please use the text employee_id, not the UUID."
+            logger.error(error_msg)
+            return {"error": error_msg}
 
         # get the employee uuid from the employees table
         response = supabase.table("employees").select("id").eq("employee_id", employee_id).execute()
         if hasattr(response, 'error') and response.error:
             error_msg = f"Database query error: {response.error}"
             logger.error(error_msg)
-            return []
+            return {"error": error_msg}
+        
+        # Check if employee was found
+        if not response.data or len(response.data) == 0:
+            error_msg = f"Employee with employee_id '{employee_id}' not found"
+            logger.error(error_msg)
+            return {"error": error_msg}
+        
         employee_uuid = response.data[0].get("id")
 
         logger.info(f"list_employee_documents - Resolved employee_id '{employee_id}' to UUID: {employee_uuid}")
@@ -92,7 +106,7 @@ def list_employee_documents(employee_id: str, limit: int = 25) -> Dict[str, Any]
         if hasattr(response, 'error') and response.error:
             error_msg = f"Database query error: {response.error}"
             logger.error(error_msg)
-            return []
+            return {"error": error_msg}
 
         logger.info(f"list_employee_documents - Documents query response: {response.data}")
         
@@ -110,7 +124,7 @@ def list_employee_documents(employee_id: str, limit: int = 25) -> Dict[str, Any]
         # Log tool error
         audit_tool_error_simple("list_employee_documents", e)
         
-        return []
+        return {"error": error_msg}
 
 
 @tool

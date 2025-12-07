@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-primary">HR Copilot</h1>
+            <h1 className="text-2xl font-bold text-primary">AI assistant</h1>
             <p className="text-sm text-muted-foreground">The future of HR, powered by AI</p>
           </div>
           <Card>

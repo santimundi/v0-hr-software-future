@@ -2,7 +2,6 @@ import os
 import logging
 import uvicorn
 import time
-from datetime import datetime
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -42,7 +41,8 @@ load_dotenv(".env.local")
 #     api_key=os.getenv("CLAUDE_API_KEY"),
 # )
 llm = ChatGroq(
-   model="openai/gpt-oss-120b",
+   model="openai/gpt-oss-20b",
+   #model="moonshotai/kimi-k2-instruct-0905",
    api_key=os.getenv("GROQ_API_KEY"),
 )
 
@@ -160,13 +160,17 @@ async def answer_query(request: Request):
         document_name = data.get("document_name", "")
         selected_scopes = data.get("selected_scopes", ["all"])
         
+        # Log document_name if provided
+        if document_name:
+            logger.info(f"Received query with document_name: '{document_name}'")
+        else:
+            logger.info("Received query without document_name")
+        
         # Get client info
         client_ip = request.client.host if request.client else None
         user_agent = request.headers.get("user-agent")
         
-        # Log request received
-        audit_request_received(query, selected_scopes, client_ip, user_agent)
-
+        # Invoke graph first to generate query_topic
         result = await graph.ainvoke(
             {
                 "messages": [HumanMessage(content=query)],
@@ -178,9 +182,30 @@ async def answer_query(request: Request):
             },
             config=config,
         )
+        
+    # Extract query_topic from graph result
+    query_topic = result.get("query_topic", "")
+    
+    # Log request received with query_topic (after graph execution)
+    audit_request_received(query, query_topic=query_topic, selected_scopes=selected_scopes, client_ip=client_ip, user_agent=user_agent)
 
     # Calculate response time
     response_time_ms = int((time.time() - start_time) * 1000)
+
+    # Check if this is a policy studio result
+    if "policy_test_results" in result and result["policy_test_results"]:
+        # Log response sent (policy test results)
+        audit_response_sent(
+            "policy_test_results",
+            response_time_ms=response_time_ms,
+            model_provider="groq",
+            model_name="openai/gpt-oss-120b"
+        )
+        
+        return {
+            "type": "policy_test_results",
+            "data": result["policy_test_results"]
+        }
 
     # If graph is paused for HITL, return that to frontend
     if "__interrupt__" in result and result["__interrupt__"]:

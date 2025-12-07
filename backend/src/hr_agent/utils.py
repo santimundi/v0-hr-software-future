@@ -17,12 +17,12 @@ WRITE_PREFIXES = (
 )
 
 
-def get_content(document_id: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
+def get_employee_document_content(document_id: str) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
     """
-    Query the documents_1 table to get the content_text and content_structured fields for a document.
+    Query the employee_documents table to get the content_text and content_structured fields for a document.
     
     Args:
-        document_id: The UUID of the document to retrieve
+        document_id: The UUID of the employee document to retrieve
     
     Returns:
         Tuple of (content_text, content_structured):
@@ -32,10 +32,10 @@ def get_content(document_id: str) -> Tuple[Optional[str], Optional[Dict[str, Any
     try:
         supabase = get_supabase_client()
         
-        logger.info(f"Querying documents_1 table for document_id: {document_id}")
+        logger.info(f"Querying employee_documents table for document_id: {document_id}")
         
-        # Query documents_1 table for the specific document
-        response = supabase.table("documents_1").select("content, content_structured").eq("id", document_id).execute()
+        # Query employee_documents table for the specific document
+        response = supabase.table("employee_documents").select("content, content_structured").eq("id", document_id).execute()
         
         # Check for errors
         if hasattr(response, 'error') and response.error:
@@ -192,3 +192,45 @@ def is_write_sql(sql: str) -> bool:
         return " select " not in f" {s} " and not s.endswith("select")
     return s.startswith(WRITE_PREFIXES)
 
+
+def serialize_pydantic_model(obj: Any) -> Any:
+    """
+    Serialize a Pydantic model or nested structure to a JSON-serializable dict.
+    
+    Handles:
+    - Pydantic v2 models (uses model_dump())
+    - Pydantic v1 models (uses dict())
+    - Lists of Pydantic models
+    - Nested Pydantic models
+    - Already serialized dicts
+    
+    Args:
+        obj: The Pydantic model or structure to serialize
+    
+    Returns:
+        A JSON-serializable dict or list
+    """
+    # If it's already a dict or primitive, return as-is
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    
+    if isinstance(obj, dict):
+        return {k: serialize_pydantic_model(v) for k, v in obj.items()}
+    
+    if isinstance(obj, list):
+        return [serialize_pydantic_model(item) for item in obj]
+    
+    # Try Pydantic v2 (model_dump)
+    if hasattr(obj, 'model_dump'):
+        return obj.model_dump()
+    
+    # Try Pydantic v1 (dict)
+    if hasattr(obj, 'dict'):
+        return obj.dict()
+    
+    # Fallback: try to convert to dict if it has __dict__
+    if hasattr(obj, '__dict__'):
+        return serialize_pydantic_model(obj.__dict__)
+    
+    # Last resort: convert to string
+    return str(obj)

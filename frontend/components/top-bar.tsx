@@ -18,9 +18,9 @@ import { useRole } from "@/lib/role-context"
 import type * as MockData from "@/lib/mock-data"
 
 const roleLabels: Record<MockData.UserRole, { label: string; color: string }> = {
-  employee: { label: "Employee", color: "bg-chart-2 text-primary-foreground" },
-  manager: { label: "Manager", color: "bg-chart-1 text-primary-foreground" },
-  "hr-admin": { label: "HR Admin", color: "bg-chart-4 text-primary-foreground" },
+  employee: { label: "Employee", color: "bg-primary text-primary-foreground" },
+  manager: { label: "Manager", color: "bg-primary text-primary-foreground" },
+  "hr-admin": { label: "HR Director", color: "bg-primary text-primary-foreground" },
 }
 
 export function TopBar() {
@@ -80,22 +80,22 @@ export function TopBar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setRole("employee")}>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-2" />
+                  <div className="h-2 w-2 rounded-full bg-primary" />
                   <span>Employee</span>
                 </div>
                 {role === "employee" && <span className="ml-auto text-xs">✓</span>}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRole("manager")}>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-1" />
+                  <div className="h-2 w-2 rounded-full bg-primary" />
                   <span>Manager</span>
                 </div>
                 {role === "manager" && <span className="ml-auto text-xs">✓</span>}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRole("hr-admin")}>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-4" />
-                  <span>HR Admin</span>
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                  <span>HR Director</span>
                 </div>
                 {role === "hr-admin" && <span className="ml-auto text-xs">✓</span>}
               </DropdownMenuItem>

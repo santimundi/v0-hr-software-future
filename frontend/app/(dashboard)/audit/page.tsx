@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Filter, AlertTriangle, Check, X, Eye, Clock, User, Database, FileText } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Filter, AlertTriangle, Check, X, Eye, Clock, User, Database, FileText, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,41 +10,104 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
 import { useRole } from "@/lib/role-context"
-import * as MockData from "@/lib/mock-data"
 import { redirect } from "next/navigation"
+import { cn } from "@/lib/utils"
 
-const decisionColors: Record<string, string> = {
-  allowed: "bg-success/10 text-success",
-  blocked: "bg-destructive/10 text-destructive",
+interface AuditEvent {
+  id: string
+  userId: string
+  userName: string
+  userRole: "employee" | "manager" | "hr-admin"
+  query: string // Original query (first question)
+  queryTopic?: string // Short topic summary
+  documentsAccessed?: string[] // Documents/policies accessed
+  answered: boolean
+  timestamp: string
+  requestId?: string
 }
+
+const MAX_DOCS_DISPLAY = 2 // Maximum number of documents to show in table before truncating
 
 const roleColors: Record<string, string> = {
   employee: "bg-chart-2/10 text-chart-2",
-  manager: "bg-chart-1/10 text-chart-1",
+  manager: "bg-primary/10 text-primary",
   "hr-admin": "bg-chart-4/10 text-chart-4",
 }
 
 export default function AuditLogPage() {
   const { role } = useRole()
   const [search, setSearch] = useState("")
-  const [decisionFilter, setDecisionFilter] = useState("all")
-  const [selectedEvent, setSelectedEvent] = useState<MockData.AuditEvent | null>(null)
+  const [answeredFilter, setAnsweredFilter] = useState("all")
+  const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null)
+  const [events, setEvents] = useState<AuditEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  
+  // Reset to page 1 when date changes
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date)
+    setPage(1)
+  }
+  const [pagination, setPagination] = useState({
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+  })
 
   if (role !== "hr-admin") {
     redirect("/")
   }
 
-  const filteredEvents = MockData.auditEvents.filter((event) => {
+  useEffect(() => {
+    async function fetchAuditLogs() {
+      try {
+        setLoading(true)
+        const dateParam = selectedDate ? format(selectedDate, "yyyy-MM-dd") : ""
+        const url = `/api/audit?page=${page}${dateParam ? `&date=${dateParam}` : ""}`
+        const response = await fetch(url)
+        if (response.ok) {
+          const data = await response.json()
+          setEvents(data.events || [])
+          setPagination(data.pagination || {
+            total: 0,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          })
+        } else {
+          console.error("Failed to fetch audit logs")
+        }
+      } catch (error) {
+        console.error("Error fetching audit logs:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAuditLogs()
+  }, [page, selectedDate])
+
+  const filteredEvents = events.filter((event) => {
+    const searchText = (event.queryTopic || event.query).toLowerCase()
     const matchesSearch =
-      event.query.toLowerCase().includes(search.toLowerCase()) ||
+      searchText.includes(search.toLowerCase()) ||
       event.userName.toLowerCase().includes(search.toLowerCase())
-    const matchesDecision = decisionFilter === "all" || event.decision === decisionFilter
-    return matchesSearch && matchesDecision
+    const matchesAnswered = 
+      answeredFilter === "all" || 
+      (answeredFilter === "answered" && event.answered) ||
+      (answeredFilter === "not-answered" && !event.answered)
+    return matchesSearch && matchesAnswered
   })
 
-  const blockedCount = MockData.auditEvents.filter((e) => e.decision === "blocked").length
-  const riskFlagCount = MockData.auditEvents.filter((e) => e.riskFlags.length > 0).length
+  // Note: These counts are for the current page only
+  // For total counts, we'd need to fetch all events or add a separate stats endpoint
+  const answeredCount = events.filter((e) => e.answered).length
+  const notAnsweredCount = events.filter((e) => !e.answered).length
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -54,48 +117,37 @@ export default function AuditLogPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Events</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Queries</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{MockData.auditEvents.length}</div>
-            <p className="text-xs text-muted-foreground">Last 7 days</p>
+            <div className="text-2xl font-bold">{loading ? "..." : pagination.total}</div>
+            <p className="text-xs text-muted-foreground">Total queries</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Allowed</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Page</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : `${page} / ${pagination.totalPages}`}</div>
+            <p className="text-xs text-muted-foreground">Showing {events.length} of {pagination.total}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">This Page</CardTitle>
             <Check className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{MockData.auditEvents.length - blockedCount}</div>
-            <p className="text-xs text-muted-foreground">Successful queries</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Blocked</CardTitle>
-            <X className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{blockedCount}</div>
-            <p className="text-xs text-muted-foreground">Access denied</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Risk Flags</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">{riskFlagCount}</div>
-            <p className="text-xs text-muted-foreground">Events with flags</p>
+            <div className="text-2xl font-bold text-success">{loading ? "..." : `${answeredCount} / ${events.length}`}</div>
+            <p className="text-xs text-muted-foreground">Answered on this page</p>
           </CardContent>
         </Card>
       </div>
@@ -113,15 +165,57 @@ export default function AuditLogPage() {
                 className="pl-9"
               />
             </div>
-            <Select value={decisionFilter} onValueChange={setDecisionFilter}>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>All dates</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateChange}
+                  initialFocus
+                />
+                <div className="p-3 border-t flex gap-2">
+                  {selectedDate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDateChange(undefined)}
+                    >
+                      Clear (show all)
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleDateChange(new Date())}
+                  >
+                    Today
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Select value={answeredFilter} onValueChange={setAnsweredFilter}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by decision" />
+                <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Decisions</SelectItem>
-                <SelectItem value="allowed">Allowed</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
+                <SelectItem value="all">All Queries</SelectItem>
+                <SelectItem value="answered">Answered</SelectItem>
+                <SelectItem value="not-answered">Not Answered</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -136,48 +230,138 @@ export default function AuditLogPage() {
               <TableRow>
                 <TableHead>Timestamp</TableHead>
                 <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Query</TableHead>
-                <TableHead>Decision</TableHead>
-                <TableHead>Risk Flags</TableHead>
-                <TableHead className="text-right">Details</TableHead>
+                <TableHead>Query Topic</TableHead>
+                <TableHead>Documents Accessed</TableHead>
+                <TableHead>Answered</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEvents.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(event.timestamp).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="font-medium">{event.userName}</TableCell>
-                  <TableCell>
-                    <Badge className={roleColors[event.userRole]}>{event.userRole.replace("-", " ")}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{event.query}</TableCell>
-                  <TableCell>
-                    <Badge className={decisionColors[event.decision]}>{event.decision}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {event.riskFlags.length > 0 ? (
-                      <Badge variant="outline" className="text-warning border-warning">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        {event.riskFlags.length}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedEvent(event)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Loading audit logs...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredEvents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No audit events found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredEvents.map((event) => {
+                  const docs = event.documentsAccessed || []
+                  const docsToShow = docs.slice(0, MAX_DOCS_DISPLAY)
+                  const remainingCount = docs.length - MAX_DOCS_DISPLAY
+                  
+                  return (
+                    <TableRow key={event.id}>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(event.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="font-medium">{event.userName}</TableCell>
+                      <TableCell className="max-w-[300px]">
+                        <div className="truncate" title={event.queryTopic || event.query}>
+                          {event.queryTopic || event.query}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[250px]">
+                        {docs.length === 0 ? (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {docsToShow.map((doc, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {doc}
+                              </Badge>
+                            ))}
+                            {remainingCount > 0 && (
+                              <Badge variant="outline" className="text-xs text-muted-foreground">
+                                +{remainingCount} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {event.answered ? (
+                          <Badge className="bg-success/10 text-success">
+                            <Check className="h-3 w-3 mr-1" />
+                            Answered
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            <X className="h-3 w-3 mr-1" />
+                            Not Answered
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {!loading && pagination.totalPages > 1 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing page {page} of {pagination.totalPages} ({pagination.total} total queries)
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={!pagination.hasPrev || loading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum: number
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (page <= 3) {
+                      pageNum = i + 1
+                    } else if (page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i
+                    } else {
+                      pageNum = page - 2 + i
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(pageNum)}
+                        className="w-10"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={!pagination.hasNext || loading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Event Detail Sheet */}
       <Sheet open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
@@ -211,93 +395,48 @@ export default function AuditLogPage() {
 
               <Separator />
 
-              {/* Query */}
+              {/* Original Query */}
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">Query</h3>
+                <h3 className="text-sm font-medium">Original Query</h3>
                 <p className="text-sm bg-muted p-3 rounded-lg">{selectedEvent.query}</p>
               </div>
 
               <Separator />
 
-              {/* Sources Accessed */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  Data Sources Accessed
-                </h3>
-                {selectedEvent.sourcesAccessed.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEvent.sourcesAccessed.map((source, i) => (
-                      <Badge key={i} variant="secondary">
-                        {source}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No sources accessed</p>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Citations Generated */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Citations Generated
-                </h3>
-                {selectedEvent.citationsGenerated.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEvent.citationsGenerated.map((citation, i) => (
-                      <Badge key={i} variant="outline">
-                        {citation}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No citations generated</p>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Redactions */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Redactions Applied</h3>
-                {selectedEvent.redactionsApplied.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEvent.redactionsApplied.map((redaction, i) => (
-                      <Badge key={i} variant="destructive">
-                        {redaction}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No redactions applied</p>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Decision & Risk */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Decision & Risk Assessment</h3>
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Decision</p>
-                    <Badge className={decisionColors[selectedEvent.decision]}>{selectedEvent.decision}</Badge>
-                  </div>
-                  {selectedEvent.riskFlags.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Risk Flags</p>
-                      <div className="flex gap-1 mt-1">
-                        {selectedEvent.riskFlags.map((flag, i) => (
-                          <Badge key={i} variant="outline" className="text-warning border-warning">
-                            {flag.replace(/_/g, " ")}
-                          </Badge>
-                        ))}
-                      </div>
+              {/* Documents Accessed */}
+              {selectedEvent.documentsAccessed && selectedEvent.documentsAccessed.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Documents Accessed
+                    </h3>
+                    <div className="space-y-1">
+                      {selectedEvent.documentsAccessed.map((doc, idx) => (
+                        <Badge key={idx} variant="outline" className="mr-2">
+                          {doc}
+                        </Badge>
+                      ))}
                     </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
+              {/* Status */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">Status</h3>
+                <div>
+                  {selectedEvent.answered ? (
+                    <Badge className="bg-success/10 text-success">
+                      <Check className="h-3 w-3 mr-1" />
+                      Answered
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      <X className="h-3 w-3 mr-1" />
+                      Not Answered
+                    </Badge>
                   )}
                 </div>
               </div>
