@@ -1,13 +1,12 @@
 import logging
-import re
 import time
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.graph import END
 from langgraph.types import interrupt
 from src.hr_agent.tools import get_rag_tools
-from src.hr_agent.state import PolicyTestResults, QuerySummaryOutput, State
+from src.hr_agent.state import GeneratedDocsOutput, PolicyTestResults, QuerySummaryOutput, State
 from src.hr_agent.logging_utils import *
-from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql, serialize_pydantic_model
+from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql, serialize_pydantic_model, create_document
 from src.hr_agent.prompts import *
 from src.hr_agent.audit_helpers import *
 
@@ -53,11 +52,11 @@ class HR_Node:
         response = llm_with_structured_output.invoke(messages)
 
         logger.info(f"Query topic summarization response: {response}")
-        logger.info(f"Policy studio: {response.policy_studio}")
+        logger.info(f"Route: {response.route}")
 
         return {
             "query_topic": response.query_topic.strip(), 
-            "policy_studio": response.policy_studio
+            "route": response.route
         }
     
 
@@ -66,12 +65,16 @@ class HR_Node:
         Route the input to the appropriate node based on the user query.
         Returns the name of the next node to execute.
         """
-        if state.get("policy_studio", False):
+        if state.get("route") == "policy_studio":
             logger.info("Routing to policy_studio node")
             return "policy_studio"
-        else:
-            logger.info("Routing to process_query node")
-            return "process_query"
+
+        if state.get("route") == "onboarding":
+            logger.info("Routing to onboarding node")
+            return "onboarding"
+
+        logger.info("Routing to process_query node")
+        return "process_query"
 
     
     def policy_studio(self, state: State) -> State:
@@ -155,7 +158,66 @@ class HR_Node:
             raise
     
     
+    def create_employee(self, state: State) -> State:
+        """
+        This node is called when the user query is about onboarding a new employee.
+        It creates the employee record in the database.
+        """
+        log_node_entry("create_employee")
+
+        user_query = state.get("user_query", "")
+
+        logger.info(f"Create employee: {user_query}")
+
+        messages = [
+            SystemMessage(content=CREATE_EMPLOYEE_PROMPT),
+            HumanMessage(content=user_query),
+            *state["messages"]
+        ]
+        response = self.llm_with_tools.invoke(messages)
+
+        logger.info(f"Create employee response: {response}")
         
+        return {"messages": [response]}
+
+    
+
+    def generate_employee_documents(self, state: State) -> State:
+        """
+        This node is called when the user query is about generating employee documents.
+        It generates the employee documents for the new employee.
+        """
+        log_node_entry("generate_employee_documents")
+
+        llm = self.llm.with_structured_output(GeneratedDocsOutput, method="json_schema")
+        content = state["messages"][-1].content
+
+        messages = [
+            SystemMessage(content=GENERATE_EMPLOYEE_DOCUMENTS_PROMPT),
+            HumanMessage(content=content),
+        ]
+
+        response = llm.invoke(messages)
+
+        employee_id = response.employee_id
+        docs = response.docs
+
+        signed_urls = []
+
+        for doc in docs:
+            filename = doc.filename
+            content = doc.content_markdown
+            signed_url = create_document(employee_id, filename, content)
+            if signed_url:
+                logger.info(f"Document {filename} created and uploaded for employee {employee_id}")
+            else:
+                logger.warning(f"Failed to create document {filename} for employee {employee_id}")
+
+            signed_urls.append(signed_url)
+        
+        return {"signed_urls": signed_urls}
+        
+
 
     def check_if_write_operation(self, state: State) -> State:
         """

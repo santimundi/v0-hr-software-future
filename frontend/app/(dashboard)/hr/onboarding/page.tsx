@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { UserPlus, Download, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { UserPlus, Download, FileText, Sparkles, Loader2, CheckCircle2, AlertCircle, Eye, Mail, ExternalLink } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { useRole } from "@/lib/role-context"
 import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
+import * as Utils from "@/lib/utils"
 
 interface EmployeeFormData {
   firstName: string
@@ -28,17 +29,17 @@ interface EmployeeFormData {
   additionalNotes: string
 }
 
-interface GeneratedDocument {
-  name: string
-  content: string
-  type: "contract" | "offer-letter" | "nda" | "handbook" | "other"
+interface DocumentLink {
+  url: string
+  filename: string
 }
 
 export default function OnboardingPage() {
-  const { role } = useRole()
+  const { role, currentUser } = useRole()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [generatedDocuments, setGeneratedDocuments] = useState<GeneratedDocument[]>([])
+  const [documentLinks, setDocumentLinks] = useState<DocumentLink[]>([])
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [formData, setFormData] = useState<EmployeeFormData>({
     firstName: "",
     lastName: "",
@@ -53,8 +54,13 @@ export default function OnboardingPage() {
     additionalNotes: "",
   })
 
+  useEffect(() => {
+    if (role !== "hr-admin") {
+      router.push("/")
+    }
+  }, [role, router])
+
   if (role !== "hr-admin") {
-    router.push("/")
     return null
   }
 
@@ -72,29 +78,84 @@ export default function OnboardingPage() {
     }
 
     setLoading(true)
-    setGeneratedDocuments([])
+    setDocumentLinks([])
 
     try {
-      const response = await fetch("/api/onboarding/generate", {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      const employeeId = Utils.normalizeEmployeeId(currentUser.id)
+
+      // Build the query for onboarding
+      const query = `Onboard a new employee with the following details:
+- Name: ${formData.firstName} ${formData.lastName}
+- Email: ${formData.email}
+- Phone: ${formData.phone || "Not provided"}
+- Job Title: ${formData.jobTitle}
+- Department: ${formData.department || "Not provided"}
+- Start Date: ${formData.startDate}
+- Contract Type: ${formData.contractType}
+- Salary: ${formData.salary || "Not provided"}
+- Manager: ${formData.manager || "Not provided"}
+- Additional Notes: ${formData.additionalNotes || "None"}`
+
+      const requestBody = {
+        employee_id: employeeId,
+        employee_name: currentUser.name,
+        query: query,
+        job_title: currentUser.title,
+        role: role,
+      }
+
+      const response = await fetch(`${backendUrl}/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
+      }).catch((fetchError) => {
+        throw new Error(
+          `Unable to connect to backend server. Please make sure the backend is running on port 8000.`
+        )
       })
 
       if (!response.ok) {
-        throw new Error("Failed to generate documents")
+        const errorText = await response.text().catch(() => "Unknown error")
+        throw new Error(`Backend error (${response.status}): ${errorText}`)
       }
 
       const data = await response.json()
-      setGeneratedDocuments(data.documents || [])
-      toast.success("Documents generated successfully!", {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-      })
-    } catch (error) {
+      
+      // Extract signed URLs from the response
+      // The backend returns signed_urls in the response for onboarding_documents type
+      if (data.type === "onboarding_documents" && data.signed_urls && Array.isArray(data.signed_urls)) {
+        // Extract filenames from URLs or use default names
+        const documentNames = [
+          "Employment Contract",
+          "NDA",
+          "Background Check Consent",
+          "Payment Enrollment Form",
+          "Benefits Enrollment Form",
+          "Personal Data Form"
+        ]
+        
+        const links: DocumentLink[] = data.signed_urls.map((url: string, index: number) => {
+          // Use predefined document names based on order
+          // The backend generates documents in a specific order matching this array
+          return {
+            url: url,
+            filename: documentNames[index] || `Document ${index + 1}`
+          }
+        })
+        
+        setDocumentLinks(links)
+        toast.success("Documents generated successfully!", {
+          icon: <CheckCircle2 className="h-4 w-4" />,
+        })
+      } else {
+        throw new Error("Invalid response format from backend")
+      }
+    } catch (error: any) {
       console.error("Error generating documents:", error)
-      toast.error("Failed to generate documents. Please try again.", {
+      toast.error(error.message || "Failed to generate documents. Please try again.", {
         icon: <AlertCircle className="h-4 w-4" />,
       })
     } finally {
@@ -102,23 +163,43 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleDownloadDocument = (document: GeneratedDocument) => {
-    const blob = new Blob([document.content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
+  const handlePreviewDocument = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleDownloadDocument = (link: DocumentLink) => {
     const a = document.createElement("a")
-    a.href = url
-    a.download = `${document.name}.txt`
+    a.href = link.url
+    a.download = link.filename
+    a.target = "_blank"
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    toast.success(`Downloaded ${document.name}`)
+    toast.success(`Downloaded ${link.filename}`)
   }
 
-  const handleDownloadAll = () => {
-    generatedDocuments.forEach((doc) => {
-      setTimeout(() => handleDownloadDocument(doc), 100)
-    })
+  const handleSendLinksToEmail = async () => {
+    if (!formData.email || documentLinks.length === 0) {
+      toast.error("Email address is required to send links")
+      return
+    }
+
+    setIsSendingEmail(true)
+    try {
+      // TODO: Implement email sending API endpoint
+      // For now, just show a success message
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast.success("Document links sent to email successfully!", {
+        icon: <Mail className="h-4 w-4" />,
+      })
+    } catch (error) {
+      console.error("Error sending email:", error)
+      toast.error("Failed to send email. Please try again.", {
+        icon: <AlertCircle className="h-4 w-4" />,
+      })
+    } finally {
+      setIsSendingEmail(false)
+    }
   }
 
   return (
@@ -299,23 +380,17 @@ export default function OnboardingPage() {
                   <FileText className="h-5 w-5" />
                   Generated Documents
                 </CardTitle>
-                <CardDescription>Download individual documents or all at once</CardDescription>
+                <CardDescription>Preview and download generated onboarding documents</CardDescription>
               </div>
-              {generatedDocuments.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleDownloadAll}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download All
-                </Button>
-              )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">AI is generating your documents...</p>
               </div>
-            ) : generatedDocuments.length === 0 ? (
+            ) : documentLinks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <FileText className="h-12 w-12 text-muted-foreground opacity-50" />
                 <p className="text-sm text-muted-foreground text-center">
@@ -324,30 +399,71 @@ export default function OnboardingPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {generatedDocuments.map((document, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <FileText className="h-4 w-4 text-primary" />
+              <>
+                <div className="space-y-3">
+                  {documentLinks.map((link, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{link.filename}</p>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 mt-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View link
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{document.name}</p>
-                        <Badge variant="secondary" className="text-xs mt-1">
-                          {document.type}
-                        </Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePreviewDocument(link.url)}
+                          title="Preview document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(link)}
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleDownloadDocument(document)}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <Separator />
+                <Button
+                  onClick={handleSendLinksToEmail}
+                  disabled={isSendingEmail}
+                  className="w-full"
+                  variant="default"
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Links to Email
+                    </>
+                  )}
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>

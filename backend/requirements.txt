@@ -19,3 +19,4 @@ pandas
 openpyxl 
 tabulate
 faiss-cpu
+reportlab

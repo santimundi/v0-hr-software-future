@@ -38,11 +38,14 @@ class HR_Agent_GraphBuilder:
         self.graph.add_node("summarize_query", hr_node.summarize_query_topic)
         self.graph.add_node("policy_studio", hr_node.policy_studio)
         self.graph.add_node("parse_studio_results", hr_node.parse_studio_results)
+        self.graph.add_node("create_employee", hr_node.create_employee)
+        self.graph.add_node("generate_employee_documents", hr_node.generate_employee_documents)
         self.graph.add_node("process_query", hr_node.process_query)
         self.graph.add_node("hitl_approval", hr_node.hitl_approval)
         self.graph.add_node("handle_hitl_approval", hr_node.handle_hitl_approval)
         self.graph.add_node("tools_hr", tool_node)
         self.graph.add_node("tools_policy_studio", tool_node)
+        self.graph.add_node("tools_onboarding", tool_node)
 
         # Start with query summarization, then proceed to main HR node
         self.graph.add_edge(START, "summarize_query")
@@ -52,6 +55,7 @@ class HR_Agent_GraphBuilder:
             {
                 "policy_studio": "policy_studio",
                 "process_query": "process_query",
+                "onboarding": "create_employee",
             }
         )
 
@@ -66,6 +70,18 @@ class HR_Agent_GraphBuilder:
         )
 
         self.graph.add_edge("tools_policy_studio", "policy_studio")
+
+
+        self.graph.add_conditional_edges(
+            "create_employee",
+            tools_condition,
+            {
+                "tools": "tools_onboarding",
+                END: "generate_employee_documents",
+            }
+        )
+
+        self.graph.add_edge("tools_onboarding", "create_employee")
 
         # After process_query runs, decide whether to route to HITL, tools, or end
         self.graph.add_conditional_edges(
@@ -86,7 +102,8 @@ class HR_Agent_GraphBuilder:
         self.graph.add_edge("tools_hr", "process_query")
         
         self.graph.add_edge("parse_studio_results", END)
+        self.graph.add_edge("generate_employee_documents", END)
         self.graph.add_edge("process_query", END)
 
-        return self.graph.compile()
+        return self.graph.compile(checkpointer=MemorySaver())
         

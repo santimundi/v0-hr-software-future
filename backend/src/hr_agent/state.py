@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class QuerySummaryOutput(BaseModel):
     query_topic: str = Field(description="A very short, precise topic summary (3-6 words max) for this user query.")
-    policy_studio: bool = Field(default=False, description="Whether the user query is a policy studio test case")
+    route:Literal["policy_studio", "onboarding", "agent_query"] = Field(description="The route to take for the user query")
 
 
 class ConflictingClauses(BaseModel):
@@ -46,6 +46,13 @@ class PolicyTestResults(BaseModel):
     )
 
 
+class GeneratedDoc(BaseModel):
+    filename: str = Field(description="A descriptive filename using the document type and employee name (e.g., 'employment_contract_john_doe.md' or 'nda_jane_smith.md')")
+    content_markdown: str = Field(description="Full document content in Markdown. No agent/copilot mentions.")
+
+class GeneratedDocsOutput(BaseModel):
+    docs: List[GeneratedDoc] = Field(description="List of generated onboarding documents")
+    employee_id: str = Field(description="The employee ID of the user")
 
 class State(TypedDict):
     """
@@ -66,3 +73,5 @@ class State(TypedDict):
     rag: bool = Field(default=False, description="Whether to route to the RAG system")
     policy_studio: bool = Field(default=False, description="Whether the user query is a policy studio test case")
     policy_test_results: Optional[List[Dict[str, Any]]] = Field(default=None, description="The serialized results of the policy studio test case")
+    signed_urls: List[str] = Field(default=[], description="The signed URLs of the generated documents")
+    route: Literal["policy_studio", "onboarding", "agent_query"] = Field(description="The route to take for the user query")

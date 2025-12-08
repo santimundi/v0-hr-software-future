@@ -207,6 +207,21 @@ async def answer_query(request: Request):
             "data": result["policy_test_results"]
         }
 
+    # Check if this is an onboarding result with signed URLs
+    if "signed_urls" in result and result["signed_urls"]:
+        # Log response sent (onboarding documents)
+        audit_response_sent(
+            "onboarding_documents",
+            response_time_ms=response_time_ms,
+            model_provider="groq",
+            model_name="openai/gpt-oss-120b"
+        )
+        
+        return {
+            "type": "onboarding_documents",
+            "signed_urls": result["signed_urls"]
+        }
+
     # If graph is paused for HITL, return that to frontend
     if "__interrupt__" in result and result["__interrupt__"]:
         # result["__interrupt__"] is often a list of Interrupt objects; payload is in .value
