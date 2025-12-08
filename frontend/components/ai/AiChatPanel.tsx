@@ -15,6 +15,8 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { toast } from "sonner"
 import * as Utils from "@/lib/utils"
+import { VoiceInput } from "@/components/voice/VoiceInput"
+import { submitApproval } from "@/lib/voiceApproval"
 
 type AvailabilityEntry = {
   employee: string
@@ -132,6 +134,7 @@ interface Message {
     explanation: string
     interruptId?: string
     threadId: string
+    isVoice?: boolean
   }
 }
 
@@ -166,6 +169,7 @@ export function AiChatPanel({ onClose, initialPrompt }: AiChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState(initialPrompt || "")
   const [isLoading, setIsLoading] = useState(false)
+  const [pendingApproval, setPendingApproval] = useState<{ explanation: string; interruptId?: string; threadId?: string; isVoice?: boolean } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -179,6 +183,67 @@ export function AiChatPanel({ onClose, initialPrompt }: AiChatPanelProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // --- Voice handlers ---
+  const handleVoiceTranscript = (transcript: string) => {
+    if (!transcript.trim()) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: transcript,
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+  }
+
+  const handleVoiceResponse = (text: string, _audioUrl: string, _voiceText?: string) => {
+    if (!text.trim()) return
+
+    const aiResponse: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: text,
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages((prev) => [...prev, aiResponse])
+  }
+
+  const handleVoiceInterrupt = (interrupts: any[]) => {
+    if (!interrupts || interrupts.length === 0) return
+
+    const interrupt = interrupts[0]
+    if (interrupt.type !== "db_write_approval") return
+
+    const employeeId = Utils.normalizeEmployeeId(currentUser.id)
+
+    const interruptMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+      pendingApproval: {
+        explanation: interrupt.explanation || "A database write operation requires your approval.",
+        interruptId: interrupt.id,
+        threadId: employeeId,
+        isVoice: true,
+      },
+    }
+
+    setMessages((prev) => [...prev, interruptMessage])
+  }
+
+  const handleVoiceError = (error: string) => {
+    const errorMessage: Message = {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: `Voice error: ${error}`,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, errorMessage])
+  }
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
@@ -283,44 +348,26 @@ export function AiChatPanel({ onClose, initialPrompt }: AiChatPanelProps) {
     setIsLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-
-      const response = await fetch(`${backendUrl}/query`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          employee_id: message.pendingApproval.threadId,
-          resume: {
-            approved: approved,
-            user_feedback: approved ? "Approved" : "Rejected",
-          },
-        }),
+      const { data, finalContent } = await submitApproval({
+        backendUrl,
+        isVoice: !!message.pendingApproval.isVoice,
+        threadId: message.pendingApproval.threadId,
+        currentUser: { name: currentUser.name || "", title: currentUser.title || "" },
+        role,
+        approved,
+        autoPlayAudio: true,
       })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error")
-        throw new Error(`Backend error (${response.status}): ${errorText}`)
-      }
-
-      const data = await response.json()
 
       // Update the message to remove pending approval and add the final response
       setMessages((prev) =>
         prev.map((m) => {
-          if (m.id === messageId) {
-            return {
-              ...m,
-              pendingApproval: undefined,
-              content:
-                data.type === "final" && data.data
-                  ? data.data
-                  : approved
-                    ? "The operation has been approved and executed."
-                    : "The operation has been rejected.",
-            }
+          if (m.id !== messageId) return m
+
+          return {
+            ...m,
+            pendingApproval: undefined,
+            content: finalContent,
           }
-          return m
         })
       )
 
@@ -582,7 +629,7 @@ export function AiChatPanel({ onClose, initialPrompt }: AiChatPanelProps) {
       {/* Input */}
       <div className="border-t bg-card p-4">
         <div className="max-w-3xl mx-auto space-y-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-end">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -593,7 +640,19 @@ export function AiChatPanel({ onClose, initialPrompt }: AiChatPanelProps) {
                 }
               }}
               placeholder="Ask AI assistant anything..."
-              className="min-h-[60px] resize-none"
+              className="min-h-[60px] resize-none flex-1"
+              disabled={isLoading}
+            />
+            {/* Voice input button */}
+            <VoiceInput
+              employeeId={Utils.normalizeEmployeeId(currentUser.id)}
+              employeeName={currentUser.name}
+              jobTitle={currentUser.title}
+              role={role}
+              onTranscript={handleVoiceTranscript}
+              onResponse={handleVoiceResponse}
+              onError={handleVoiceError}
+              onInterrupt={handleVoiceInterrupt}
               disabled={isLoading}
             />
             <Button

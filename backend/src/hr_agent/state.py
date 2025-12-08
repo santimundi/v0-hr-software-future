@@ -72,6 +72,8 @@ class State(TypedDict):
     user_feedback: Optional[str] = Field(description="The user's feedback on the write operation")
     rag: bool = Field(default=False, description="Whether to route to the RAG system")
     policy_studio: bool = Field(default=False, description="Whether the user query is a policy studio test case")
+    voice_query: bool = Field(default=False, description="Whether the user query is a voice query")
+    result_for_voice: Optional[str] = Field(default=None, description="This is the result of the user query, formatted for voice output")
     policy_test_results: Optional[List[Dict[str, Any]]] = Field(default=None, description="The serialized results of the policy studio test case")
     signed_urls: List[str] = Field(default=[], description="The signed URLs of the generated documents")
     route: Literal["policy_studio", "onboarding", "agent_query"] = Field(description="The route to take for the user query")

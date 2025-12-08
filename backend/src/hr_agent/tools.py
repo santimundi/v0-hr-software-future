@@ -8,7 +8,7 @@ from langchain_core.tools import tool
 
 from src.services.helpers import get_supabase_client
 from src.hr_agent.utils import get_employee_document_content, format_structured_data
-from src.hr_agent.audit_helpers import *
+from src.core.audit_helpers import *
 
 
 logger = logging.getLogger(__name__)

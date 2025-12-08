@@ -43,6 +43,8 @@ class HR_Agent_GraphBuilder:
         self.graph.add_node("process_query", hr_node.process_query)
         self.graph.add_node("hitl_approval", hr_node.hitl_approval)
         self.graph.add_node("handle_hitl_approval", hr_node.handle_hitl_approval)
+        self.graph.add_node("finalize", hr_node.finalize)
+        self.graph.add_node("format_result_for_voice", hr_node.format_result_for_voice)
         self.graph.add_node("tools_hr", tool_node)
         self.graph.add_node("tools_policy_studio", tool_node)
         self.graph.add_node("tools_onboarding", tool_node)
@@ -90,7 +92,17 @@ class HR_Agent_GraphBuilder:
             {
                 "hitl_approval": "hitl_approval",  # If a write is detected, route to HITL approval
                 "tools_hr": "tools_hr",           # For normal tool execution (read operations)
-                END: END,                         # If no tool calls, end
+                END: "finalize",                         # If no tool calls, end
+            }
+        )
+
+
+        self.graph.add_conditional_edges(
+            "finalize",
+            hr_node.route_from_finalize,
+            {
+                "format_result_for_voice": "format_result_for_voice",
+                END: END,
             }
         )
 
@@ -103,7 +115,7 @@ class HR_Agent_GraphBuilder:
         
         self.graph.add_edge("parse_studio_results", END)
         self.graph.add_edge("generate_employee_documents", END)
-        self.graph.add_edge("process_query", END)
+
 
         return self.graph.compile(checkpointer=MemorySaver())
         

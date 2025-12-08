@@ -16,7 +16,7 @@ from logging.handlers import RotatingFileHandler
 
 # Import audit module to ensure audit logger is initialized
 try:
-    from src.hr_agent.audit import log_execution_separator
+    from src.core.audit import log_execution_separator
     # Audit logger is set up at module import time
     # We'll log the separator after logging is configured
 except ImportError:

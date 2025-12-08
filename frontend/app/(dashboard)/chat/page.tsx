@@ -1,3 +1,4 @@
+import { submitApproval } from "@/lib/voiceApproval"
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
@@ -37,6 +38,7 @@ import * as MockData from "@/lib/mock-data"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
+import { VoiceInput } from "@/components/voice/VoiceInput"
 
 const sourceIcons: Record<string, typeof FileText> = {
   policy: FileText,
@@ -179,7 +181,7 @@ function ChatPageContent() {
   const [selectedAction, setSelectedAction] = useState<MockData.ActionCard | null>(null)
   const [showSafetySettings, setShowSafetySettings] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [pendingApproval, setPendingApproval] = useState<{ explanation: string; interruptId?: string; threadId?: string } | null>(null)
+  const [pendingApproval, setPendingApproval] = useState<{ explanation: string; interruptId?: string; threadId?: string; isVoice?: boolean } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -403,44 +405,117 @@ function ChatPageContent() {
     }
   }
 
+  // Handle voice response
+  const handleVoiceResponse = (text: string, _audioUrl: string, _voiceText?: string) => {
+    if (!activeConversation) return
+    
+    // Add AI response to conversation
+    const aiMessage: MockData.Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: text,
+      timestamp: new Date().toISOString(),
+    }
+
+    setActiveConversation({
+      ...activeConversation,
+      messages: [...(activeConversation.messages || []), aiMessage],
+      lastMessage: text.substring(0, 50),
+    })
+  }
+
+  // Handle voice transcript (user's spoken message)
+  const handleVoiceTranscript = (transcript: string) => {
+    if (!transcript.trim()) return
+
+    // Create or get active conversation
+    let conversation = activeConversation
+    if (!conversation) {
+      const newConversation: MockData.Conversation = {
+        id: Date.now().toString(),
+        title: transcript.substring(0, 50),
+        lastMessage: transcript,
+        timestamp: new Date().toISOString(),
+        pinned: false,
+        messages: [],
+      }
+      setActiveConversation(newConversation)
+      conversation = newConversation
+    }
+
+    // Add user message to conversation
+    const userMessage: MockData.Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: transcript,
+      timestamp: new Date().toISOString(),
+    }
+
+    setActiveConversation({
+      ...conversation,
+      messages: [...(conversation.messages || []), userMessage],
+      lastMessage: transcript,
+    })
+  }
+
+  // Handle voice interrupts (HITL)
+  const handleVoiceInterrupt = (interrupts: any[]) => {
+    if (interrupts.length > 0) {
+      const interrupt = interrupts[0]
+      if (interrupt.type === "db_write_approval") {
+        setPendingApproval({
+          explanation: interrupt.explanation || "A database write operation requires your approval.",
+          interruptId: interrupt.id,
+          threadId: Utils.normalizeEmployeeId(currentUser.id),
+          isVoice: true,
+        })
+      }
+    }
+  }
+
+  const handleVoiceError = (error: string) => {
+    if (activeConversation) {
+      const errorMessage: MockData.Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Voice error: ${error}`,
+        timestamp: new Date().toISOString(),
+      }
+      setActiveConversation({
+        ...activeConversation,
+        messages: [...(activeConversation.messages || []), errorMessage],
+      })
+    }
+  }
+
   const handleApprovalResponse = async (approved: boolean) => {
     if (!pendingApproval) return
 
     setIsLoading(true)
     try {
       const employeeId = Utils.normalizeEmployeeId(currentUser.id)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"}/query`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          employee_id: pendingApproval.threadId || employeeId,
-          resume: {
-            approved: approved,
-            user_feedback: approved ? "Approved" : "Rejected",
-          },
-        }),
+      const { data, finalContent } = await submitApproval({
+        backendUrl,
+        isVoice: !!pendingApproval.isVoice,
+        threadId: pendingApproval.threadId || employeeId,
+        currentUser: { name: currentUser.name, title: currentUser.title },
+        role,
+        approved,
+        autoPlayAudio: true,
       })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error")
-        throw new Error(`Backend error (${response.status}): ${errorText}`)
-      }
-
-      const data = await response.json()
       
       // Clear pending approval
       setPendingApproval(null)
 
       // Handle the final response
-      if (data.type === "final") {
+      if (data.type === "final" || data.type === "voice_final") {
         if (activeConversation) {
           const aiMessage: MockData.Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: data.data || (approved ? "The operation has been approved and executed." : "The operation has been rejected."),
+            content: finalContent,
             timestamp: new Date().toISOString(),
           }
           setActiveConversation({
@@ -820,7 +895,21 @@ function ChatPageContent() {
                 )}
 
                 {/* Input */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-end">
+                  {/* Voice Input */}
+                  <VoiceInput
+                    employeeId={Utils.normalizeEmployeeId(currentUser.id)}
+                    employeeName={currentUser.name}
+                    jobTitle={currentUser.title}
+                    role={role}
+                    onTranscript={handleVoiceTranscript}
+                    onResponse={handleVoiceResponse}
+                    onError={handleVoiceError}
+                    onInterrupt={handleVoiceInterrupt}
+                    disabled={isLoading || !!pendingApproval}
+                  />
+                  
+                  {/* Text Input */}
                   <div className="flex-1 relative">
                     <Textarea
                       value={input}

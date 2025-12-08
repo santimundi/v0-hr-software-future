@@ -8,7 +8,7 @@ from src.hr_agent.state import GeneratedDocsOutput, PolicyTestResults, QuerySumm
 from src.hr_agent.logging_utils import *
 from src.hr_agent.utils import extract_tool_calls, extract_tool_call, is_write_sql, serialize_pydantic_model, create_document
 from src.hr_agent.prompts import *
-from src.hr_agent.audit_helpers import *
+from src.core.audit_helpers import *
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class HR_Node:
         Returns:
             Updated state with query_topic field populated
         """       
-        llm_with_structured_output = self.llm.with_structured_output(QuerySummaryOutput)
+        llm_with_structured_output = self.llm.with_structured_output(QuerySummaryOutput, method="json_schema")
          
         messages = [
             SystemMessage(content=QUERY_TOPIC_SUMMARIZATION_PROMPT),
@@ -472,3 +472,40 @@ class HR_Node:
                 name=tool_name or "execute_sql",
             )
             return {"messages": [tool_message]}
+
+
+    def format_result_for_voice(self, state: State) -> State:
+        """
+        This node is called when the user query is a voice query.
+        It formats the result of the user query for voice output.
+        """
+        log_node_entry("format_result_for_voice")
+
+        last_message = state["messages"][-1].content
+
+        messages = [
+            SystemMessage(content=FORMAT_RESULT_FOR_VOICE_PROMPT),
+            HumanMessage(content=last_message),
+        ]
+        response = self.llm.invoke(messages)
+
+        result = response.content
+
+        logger.info(f"Formatted result for voice: {result}")
+
+        return {"result_for_voice": result}
+
+    
+    def route_from_finalize(self, state: State) -> State:
+
+        if state.get("voice_query"):
+            return "format_result_for_voice"
+        else:
+            return END
+
+    def finalize(self, state: State) -> State:
+        """
+         This node is called when the user query is processed.
+         It's a dummy node that just returns the state, used as an anchor to determine the next node to execute.
+        """
+        return state

@@ -8,7 +8,7 @@ making the code more readable and maintainable.
 import re
 import logging
 from typing import Any, Dict, Optional
-from src.hr_agent.audit import (
+from src.core.audit import (
     audit_event, hash_text, extract_tables_from_sql, classify_sql,
     STORE_FULL_QUERY
 )
@@ -733,3 +733,4 @@ def audit_response_sent(
         component="app",
         data=data
     )
+

@@ -2,9 +2,11 @@ import os
 import logging
 import uvicorn
 import time
+import json
 from contextlib import asynccontextmanager
+from typing import Any, Dict
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from dotenv import load_dotenv
@@ -25,11 +27,21 @@ from src.services.main import DocumentService
 from src.core.mcp.supabase import *
 
 # Audit logging
-from src.hr_agent.audit import (
+from src.core.audit import (
     new_request_id,
     request_id_var, thread_id_var, actor_var, interrupt_id_var,
 )
-from src.hr_agent.audit_helpers import *
+from src.core.audit_helpers import *
+
+# Audio utilities for voice mode
+from src.core.audio_utils import (
+    deepgram_transcribe_bytes,
+    deepgram_tts_bytes,
+    get_supabase_admin_client,
+    upload_audio_and_get_signed_url,
+    get_audio_mime_type,
+    VOICE_BUCKET,
+)
 
 # Load environment variables (GROQ key, SUPABASE PAT, etc.)
 load_dotenv(".env.local")
@@ -45,6 +57,49 @@ llm = ChatGroq(
    #model="moonshotai/kimi-k2-instruct-0905",
    api_key=os.getenv("GROQ_API_KEY"),
 )
+
+
+def _get_llm_model_name() -> str:
+    """Get the LLM model name for audit logging."""
+    return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "unknown"
+
+
+def _set_audit_context(data: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    """
+    Set request/thread/actor context variables and return config + convenience fields.
+    """
+    request_id = new_request_id()
+    request_id_var.set(request_id)
+    
+    employee_id = data.get("employee_id", "") or ""
+    thread_id_var.set(employee_id)
+    config = {"configurable": {"thread_id": employee_id}}
+    
+    employee_name = data.get("employee_name", "") or ""
+    job_title = data.get("job_title", "") or ""
+    role = data.get("role", "employee") or "employee"
+    
+    actor_info = {
+        "employee_id": employee_id,
+        "display_name": employee_name,
+        "job_title": job_title,
+        "role": role,
+    }
+    actor_var.set(actor_info)
+    
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    
+    return {
+        "request_id": request_id,
+        "employee_id": employee_id,
+        "employee_name": employee_name,
+        "job_title": job_title,
+        "role": role,
+        "config": config,
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+    }
 
 # -----------------------------
 # App lifecycle (lifespan context manager)
@@ -82,6 +137,14 @@ async def lifespan(app: FastAPI):
     app.state.document_service = DocumentService()
 
     app.state.hr_graph = HR_Agent_GraphBuilder(llm = llm, tools=tools).build_graph()
+
+    # Initialize Supabase admin client for Storage (voice audio upload)
+    try:
+        app.state.supabase_admin = get_supabase_admin_client()
+        logger.info("Supabase admin client initialized for voice Storage.")
+    except Exception as e:
+        app.state.supabase_admin = None
+        logger.warning(f"Supabase admin client not initialized: {type(e).__name__}: {e}")
 
     yield  # App runs here
     
@@ -122,32 +185,27 @@ async def answer_query(request: Request):
     - This endpoint is also used to provide feedback to the grapg when an interrupt is triggered
     """
     
-    # Generate request ID and set context variables
-    request_id = new_request_id()
-    request_id_var.set(request_id)
     start_time = time.time()
-    
     data = await request.json()
 
-    employee_id = data.get("employee_id", "")
-    thread_id_var.set(employee_id)
-    config = {"configurable": {"thread_id": employee_id}}
-
-    # Set actor information in context (matching audit spec structure)
-    employee_name = data.get("employee_name", "")
-    job_title = data.get("job_title", "")
-    role = data.get("role", "employee")  # Default to "employee" if not provided
-    actor_info = {
-        "employee_id": employee_id,
-        "display_name": employee_name,  # Use display_name per spec
-        "job_title": job_title,
-        "role": role,
-    }
-    actor_var.set(actor_info)
+    # Populate audit/context vars in one place
+    ctx = _set_audit_context(data, request)
+    employee_id = ctx["employee_id"]
+    employee_name = ctx["employee_name"]
+    job_title = ctx["job_title"]
+    role = ctx["role"]
+    config = ctx["config"]
+    client_ip = ctx["client_ip"]
+    user_agent = ctx["user_agent"]
+    voice_query = data.get("voice_query", False)
 
     graph = app.state.hr_graph
 
     # 1) RESUME PATH (user provided feedback)
+    query = data.get("query", "")
+    selected_scopes = data.get("selected_scopes", ["all"])
+    logger.info("Handling request in /query endpoint")
+    
     if "resume" in data:
         # Log resume request (without sensitive text)
         audit_hitl_resume_received(data.get("resume", {}))
@@ -156,19 +214,13 @@ async def answer_query(request: Request):
 
     # 2) NEW RUN PATH
     else:
-        query = data.get("query", "")
         document_name = data.get("document_name", "")
-        selected_scopes = data.get("selected_scopes", ["all"])
         
         # Log document_name if provided
         if document_name:
-            logger.info(f"Received query with document_name: '{document_name}'")
+            logger.info(f"[query] Received query with document_name: '{document_name}'")
         else:
-            logger.info("Received query without document_name")
-        
-        # Get client info
-        client_ip = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent")
+            logger.info("[query] Received query without document_name")
         
         # Invoke graph first to generate query_topic
         result = await graph.ainvoke(
@@ -304,6 +356,165 @@ async def upload_file(request: Request):
             "status_code": result.get("status_code", 500),
             "message": result.get("message", "Unknown error")
         }
+    }
+
+
+# -----------------------------
+# Voice endpoint
+# -----------------------------
+@app.post("/voice")
+async def voice(
+    request: Request,
+    employee_id: str = Form(...),
+    employee_name: str = Form(""),
+    job_title: str = Form(""),
+    role: str = Form("employee"),
+    audio: UploadFile = File(None),
+    stt_model: str = Form("nova-3"),
+    tts_model: str = Form("aura-2-thalia-en"),
+    tts_encoding: str = Form("mp3"),
+    resume: str = Form(None),
+):
+    """
+    Voice mode endpoint:
+    1. Receives audio (multipart/form-data)
+    2. Transcribes via Deepgram STT
+    3. Runs HR graph with transcript
+    4. Synthesizes response via Deepgram TTS
+    5. Uploads audio to Supabase Storage
+    6. Returns signed URL for frontend to play
+    """
+    logger.info("Handling request in /voice endpoint")
+    start_time = time.time()
+
+    # Set audit context
+    data = {
+        "employee_id": employee_id,
+        "employee_name": employee_name,
+        "job_title": job_title,
+        "role": role,
+    }
+    ctx = _set_audit_context(data, request)
+    graph = app.state.hr_graph
+
+    # Handle resume (HITL) via voice endpoint
+    if resume:
+        try:
+            resume_data = json.loads(resume)
+        except Exception:
+            resume_data = resume
+
+        result = await graph.ainvoke(Command(resume=resume_data), config=ctx["config"])
+        transcript = ""
+        detected_lang = None
+    else:
+        # 1. Read audio bytes
+        if audio is None:
+            raise HTTPException(status_code=400, detail="Empty audio upload")
+
+        audio_bytes = await audio.read()
+        if not audio_bytes:
+            raise HTTPException(status_code=400, detail="Empty audio upload")
+
+        # 2. STT - transcribe audio
+        stt = await deepgram_transcribe_bytes(
+            audio_bytes=audio_bytes,
+            content_type=audio.content_type or "audio/webm",
+            model=stt_model,
+        )
+        transcript = stt.get("transcript", "")
+        detected_lang = stt.get("language")
+
+        if not transcript:
+            raise HTTPException(status_code=400, detail="Could not transcribe audio")
+
+        logger.info(f"Voice transcript: {transcript[:100]}...")
+
+        # Audit: treat transcript as the "query"
+        audit_request_received(
+            transcript,
+            query_topic="",
+            selected_scopes=["all"],
+            client_ip=ctx["client_ip"],
+            user_agent=ctx["user_agent"],
+        )
+
+        # 3. Run HR graph with transcript as query
+        result = await graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=transcript)],
+                "user_query": transcript,
+                "employee_id": employee_id,
+                "employee_name": employee_name,
+                "job_title": job_title,
+                "document_name": "",
+                "voice_query": True,
+            },
+            config=ctx["config"],
+        )
+
+    response_time_ms = int((time.time() - start_time) * 1000)
+    model_name = _get_llm_model_name()
+
+    # 4. Handle interrupts (HITL) - return without TTS
+    if result.get("__interrupt__"):
+        interrupts = [getattr(it, "value", it) for it in result["__interrupt__"]]
+        if interrupts and isinstance(interrupts[0], dict):
+            interrupt_id_var.set(interrupts[0].get("id") or new_request_id())
+
+        audit_response_sent(
+            "interrupt",
+            response_time_ms=response_time_ms,
+            model_provider="groq",
+            model_name=model_name,
+        )
+        
+        return {
+            "type": "interrupt",
+            "transcript": transcript,
+            "detected_language": detected_lang,
+            "interrupts": interrupts,
+        }
+
+    # 5. Get AI response text (for chat) and voice-formatted text (for TTS)
+    chat_text = result["messages"][-1].content if result.get("messages") else ""
+    if not chat_text:
+        chat_text = "Sorry, I couldn't generate a response."
+
+    voice_text = result.get("result_for_voice") or chat_text
+
+    # 6. TTS - convert voice_text to audio
+    tts_bytes = await deepgram_tts_bytes(voice_text, model=tts_model, encoding=tts_encoding)
+
+    # 7. Upload to Supabase Storage and get signed URL
+    if not app.state.supabase_admin:
+        raise HTTPException(status_code=500, detail="Supabase not configured for audio upload")
+
+    path = f"voice/{employee_id}.{tts_encoding}"
+    audio_url = upload_audio_and_get_signed_url(
+        app.state.supabase_admin,
+        bucket=VOICE_BUCKET,
+        path=path,
+        audio_bytes=tts_bytes,
+        content_type=get_audio_mime_type(tts_encoding),
+    )
+
+    audit_response_sent(
+        "final",
+        message_preview=str(chat_text)[:200],
+        response_time_ms=response_time_ms,
+        model_provider="groq",
+        model_name=model_name,
+    )
+
+    return {
+        "type": "voice_final",
+        "transcript": transcript,
+        "detected_language": detected_lang,
+        "text": chat_text,
+        "voice_text": voice_text,
+        "audio_url": audio_url,
+        "audio_mime": get_audio_mime_type(tts_encoding),
     }
 
 
