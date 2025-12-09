@@ -27,16 +27,13 @@ from src.services.main import DocumentService
 from src.core.mcp.supabase import *
 
 # Audit logging
-from src.core.audit import (
-    new_request_id,
-    request_id_var, thread_id_var, actor_var, interrupt_id_var,
-)
+from src.core.audit import *
 from src.core.audit_helpers import *
 
 # Audio utilities for voice mode
 from src.core.audio_utils import (
-    deepgram_transcribe_bytes,
-    deepgram_tts_bytes,
+    groq_whisper_transcribe_bytes,
+    groq_tts_bytes,
     get_supabase_admin_client,
     upload_audio_and_get_signed_url,
     get_audio_mime_type,
@@ -370,15 +367,16 @@ async def voice(
     job_title: str = Form(""),
     role: str = Form("employee"),
     audio: UploadFile = File(None),
-    stt_model: str = Form("nova-3"),
-    tts_model: str = Form("aura-2-thalia-en"),
-    tts_encoding: str = Form("mp3"),
+    stt_model: str = Form("whisper-large-v3-turbo"),
+    tts_model: str = Form("playai-tts"),
+    tts_voice: str = Form("Aaliyah-PlayAI"),
+    tts_encoding: str = Form("wav"),
     resume: str = Form(None),
 ):
     """
     Voice mode endpoint:
     1. Receives audio (multipart/form-data)
-    2. Transcribes via Deepgram STT
+    2. Transcribes via Groq Whisper STT
     3. Runs HR graph with transcript
     4. Synthesizes response via Deepgram TTS
     5. Uploads audio to Supabase Storage
@@ -416,11 +414,10 @@ async def voice(
         if not audio_bytes:
             raise HTTPException(status_code=400, detail="Empty audio upload")
 
-        # 2. STT - transcribe audio
-        stt = await deepgram_transcribe_bytes(
+        # 2. STT - transcribe audio (Groq Whisper only)
+        stt = groq_whisper_transcribe_bytes(
             audio_bytes=audio_bytes,
-            content_type=audio.content_type or "audio/webm",
-            model=stt_model,
+            model=stt_model or "whisper-large-v3-turbo",
         )
         transcript = stt.get("transcript", "")
         detected_lang = stt.get("language")
@@ -429,6 +426,8 @@ async def voice(
             raise HTTPException(status_code=400, detail="Could not transcribe audio")
 
         logger.info(f"Voice transcript: {transcript[:100]}...")
+        if detected_lang:
+            logger.info(f"Voice detected language: {detected_lang}")
 
         # Audit: treat transcript as the "query"
         audit_request_received(
@@ -483,8 +482,20 @@ async def voice(
 
     voice_text = result.get("result_for_voice") or chat_text
 
-    # 6. TTS - convert voice_text to audio
-    tts_bytes = await deepgram_tts_bytes(voice_text, model=tts_model, encoding=tts_encoding)
+    # 6. TTS - convert voice_text to audio (Groq PlayAI)
+    selected_model = tts_model
+    selected_voice = tts_voice
+
+    if detected_lang and str(detected_lang).lower().startswith("ar"):
+        selected_model = "playai-tts-arabic"
+        selected_voice = "Nasser-PlayAI"
+
+    tts_bytes = groq_tts_bytes(
+        voice_text,
+        model=selected_model,
+        voice=selected_voice,
+        response_format=tts_encoding,
+    )
 
     # 7. Upload to Supabase Storage and get signed URL
     if not app.state.supabase_admin:

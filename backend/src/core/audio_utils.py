@@ -2,8 +2,8 @@
 Audio utilities for voice mode.
 
 This module provides:
-- Deepgram STT (Speech-to-Text) transcription
-- Deepgram TTS (Text-to-Speech) synthesis
+- Groq Whisper STT transcription
+- Groq PlayAI TTS synthesis
 - Supabase Storage audio upload with signed URLs
 """
 
@@ -11,7 +11,7 @@ import os
 import logging
 from typing import Any, Dict, Optional
 
-import httpx
+from groq import Groq
 from fastapi import HTTPException
 from supabase import create_client, Client
 
@@ -20,149 +20,93 @@ logger = logging.getLogger(__name__)
 # -----------------------------
 # Configuration
 # -----------------------------
-DEEPGRAM_BASE_URL = "https://api.deepgram.com"
 VOICE_BUCKET = os.getenv("VOICE_BUCKET", "voice")
 
 
-_http_client: Optional[httpx.AsyncClient] = None
+_groq_client: Optional[Groq] = None
 
 
-async def _get_http_client() -> httpx.AsyncClient:
-    """
-    Return a shared AsyncClient to avoid creating a new connection per request.
-    """
-    global _http_client
-    if _http_client is None:
-        _http_client = httpx.AsyncClient(timeout=60.0)
-    return _http_client
+def _get_groq_client() -> Groq:
+    global _groq_client
+    if _groq_client is None:
+        _groq_client = Groq()
+    return _groq_client
 
 
 # -----------------------------
-# Deepgram STT (Speech-to-Text)
+# Groq Whisper STT
 # -----------------------------
-async def deepgram_transcribe_bytes(
+def groq_whisper_transcribe_bytes(
     audio_bytes: bytes,
-    content_type: str,
     *,
-    model: str = "nova-3",
-    detect_language: bool = False,
+    model: str = "whisper-large-v3-turbo",
+    response_format: str = "verbose_json",
+    temperature: float = 0.0,
+    filename: str = "audio.webm",
 ) -> Dict[str, Any]:
     """
-    Transcribe audio bytes using Deepgram STT API.
-    
-    Args:
-        audio_bytes: Raw audio data
-        content_type: MIME type of the audio (e.g., "audio/webm", "audio/mp3")
-        model: Deepgram model to use (default: "nova-2")
-        detect_language: Whether to detect the language (default: True)
-    
-    Returns:
-        Dict with:
-            - transcript: The transcribed text
-            - language: Detected language code (if detect_language=True)
-            - raw: Full Deepgram response
-    
-    Raises:
-        HTTPException: If API key is missing or Deepgram returns an error
+    Transcribe audio bytes using Groq Whisper.
     """
-    api_key = os.getenv("DEEPGRAM_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Missing DEEPGRAM_API_KEY")
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY for STT")
 
-    params = {
-        "model": model,
-        "punctuate": "true",
-        "smart_format": "true",
-        "detect_language": "true" if detect_language else "false",
-    }
-
-    headers = {
-        "Authorization": f"Token {api_key}",
-        "Content-Type": content_type or "application/octet-stream",
-    }
-
-    client = await _get_http_client()
-    r = await client.post(
-        f"{DEEPGRAM_BASE_URL}/v1/listen",
-        params=params,
-        headers=headers,
-        content=audio_bytes,
-    )
-    if r.status_code >= 400:
-        logger.error(f"Deepgram STT error: {r.text}")
-        raise HTTPException(status_code=502, detail=f"Deepgram STT error: {r.text}")
-    raw = r.json()
-
-    # Parse transcript from response
-    transcript = ""
+    client = _get_groq_client()
     try:
-        transcript = (
-            raw.get("results", {})
-            .get("channels", [{}])[0]
-            .get("alternatives", [{}])[0]
-            .get("transcript", "")
-        ) or ""
-    except Exception:
-        transcript = ""
-
-    # Parse detected language
-    language = None
-    try:
-        language = (
-            raw.get("results", {})
-            .get("channels", [{}])[0]
-            .get("detected_language")
+        result = client.audio.transcriptions.create(
+            file=(filename, audio_bytes),
+            model=model,
+            temperature=temperature,
+            response_format=response_format,
         )
-    except Exception:
-        language = None
+    except Exception as e:
+        logger.error(f"Groq Whisper error: {e}")
+        raise HTTPException(status_code=502, detail=f"Groq Whisper STT error: {e}")
 
-    return {"transcript": transcript.strip(), "language": language, "raw": raw}
+    transcript = getattr(result, "text", "") or ""
+    language = getattr(result, "language", None)
+    # Some responses may include language under dict-style access
+    if not language and isinstance(result, dict):
+        language = result.get("language")
+    return {"transcript": transcript.strip(), "language": language, "raw": result}
 
 
 # -----------------------------
-# Deepgram TTS (Text-to-Speech)
+# Groq PlayAI TTS (Text-to-Speech)
 # -----------------------------
-async def deepgram_tts_bytes(
+def groq_tts_bytes(
     text: str,
     *,
-    model: str = "aura-2-thalia-en",
-    encoding: str = "mp3",
+    model: str = "playai-tts",
+    voice: str = "Aaliyah-PlayAI",
+    response_format: str = "wav",
 ) -> bytes:
     """
-    Convert text to speech using Deepgram TTS API.
-    
-    Args:
-        text: Text to synthesize
-        model: Deepgram TTS model (default: "aura-2-thalia-en")
-        encoding: Audio encoding format (default: "mp3")
-    
-    Returns:
-        Audio bytes in the specified encoding
-    
-    Raises:
-        HTTPException: If API key is missing or Deepgram returns an error
+    Convert text to speech using Groq PlayAI TTS.
     """
-    api_key = os.getenv("DEEPGRAM_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="Missing DEEPGRAM_API_KEY")
+        raise HTTPException(status_code=500, detail="Missing GROQ_API_KEY for TTS")
 
-    headers = {
-        "Authorization": f"Token {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "audio/mpeg" if encoding == "mp3" else "audio/wav",
-    }
+    client = _get_groq_client()
+    try:
+        resp = client.audio.speech.create(
+            model=model,
+            voice=voice,
+            response_format=response_format,
+            input=text,
+        )
+    except Exception as e:
+        logger.error(f"Groq TTS error: {e}")
+        raise HTTPException(status_code=502, detail=f"Groq TTS error: {e}")
 
-    client = await _get_http_client()
-    r = await client.post(
-        f"{DEEPGRAM_BASE_URL}/v1/speak",
-        params={"model": model, "encoding": encoding},
-        headers=headers,
-        json={"text": text},
-    )
-    if r.status_code >= 400:
-        logger.error(f"Deepgram TTS error: {r.text}")
-        raise HTTPException(status_code=502, detail=f"Deepgram TTS error: {r.text}")
-    return r.content
+    # The response object supports streaming; we extract raw bytes
+    content = getattr(resp, "content", None)
+    if content is None and hasattr(resp, "read"):
+        content = resp.read()
+    if content is None:
+        raise HTTPException(status_code=502, detail="Groq TTS returned no audio content")
+    return content
 
 
 # -----------------------------
@@ -244,5 +188,9 @@ def get_audio_mime_type(encoding: str) -> str:
     Returns:
         MIME type string
     """
-    return "audio/mpeg" if encoding == "mp3" else "audio/wav"
+    if encoding == "mp3":
+        return "audio/mpeg"
+    if encoding == "wav":
+        return "audio/wav"
+    return "application/octet-stream"
 

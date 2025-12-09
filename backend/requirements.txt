@@ -20,3 +20,4 @@ openpyxl
 tabulate
 faiss-cpu
 reportlab
+groq
