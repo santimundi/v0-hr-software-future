@@ -60,44 +60,6 @@ def _get_llm_model_name() -> str:
     """Get the LLM model name for audit logging."""
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "unknown"
 
-
-def _set_audit_context(data: Dict[str, Any], request: Request) -> Dict[str, Any]:
-    """
-    Set request/thread/actor context variables and return config + convenience fields.
-    """
-    request_id = new_request_id()
-    request_id_var.set(request_id)
-    
-    employee_id = data.get("employee_id", "") or ""
-    thread_id_var.set(employee_id)
-    config = {"configurable": {"thread_id": employee_id}}
-    
-    employee_name = data.get("employee_name", "") or ""
-    job_title = data.get("job_title", "") or ""
-    role = data.get("role", "employee") or "employee"
-    
-    actor_info = {
-        "employee_id": employee_id,
-        "display_name": employee_name,
-        "job_title": job_title,
-        "role": role,
-    }
-    actor_var.set(actor_info)
-    
-    client_ip = request.client.host if request.client else None
-    user_agent = request.headers.get("user-agent")
-    
-    return {
-        "request_id": request_id,
-        "employee_id": employee_id,
-        "employee_name": employee_name,
-        "job_title": job_title,
-        "role": role,
-        "config": config,
-        "client_ip": client_ip,
-        "user_agent": user_agent,
-    }
-
 # -----------------------------
 # App lifecycle (lifespan context manager)
 # -----------------------------
@@ -186,7 +148,8 @@ async def answer_query(request: Request):
     data = await request.json()
 
     # Populate audit/context vars in one place
-    ctx = _set_audit_context(data, request)
+    from src.core.audit_helpers import set_audit_context
+    ctx = set_audit_context(data, request)
     employee_id = ctx["employee_id"]
     employee_name = ctx["employee_name"]
     job_title = ctx["job_title"]
@@ -392,7 +355,8 @@ async def voice(
         "job_title": job_title,
         "role": role,
     }
-    ctx = _set_audit_context(data, request)
+    from src.core.audit_helpers import set_audit_context
+    ctx = set_audit_context(data, request)
     graph = app.state.hr_graph
 
     # Handle resume (HITL) via voice endpoint
@@ -448,6 +412,7 @@ async def voice(
                 "job_title": job_title,
                 "document_name": "",
                 "voice_query": True,
+                "language_detected": detected_lang,
             },
             config=ctx["config"],
         )
@@ -496,6 +461,7 @@ async def voice(
         voice=selected_voice,
         response_format=tts_encoding,
     )
+    logger.info(f"TTS model: {selected_model}, voice: {selected_voice}, lang: {detected_lang}")
 
     # 7. Upload to Supabase Storage and get signed URL
     if not app.state.supabase_admin:

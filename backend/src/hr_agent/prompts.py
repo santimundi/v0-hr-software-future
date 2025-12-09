@@ -133,6 +133,10 @@ When a user requests leave/PTO/time-off FOR THEMSELVES, you MUST follow these st
 
 FORMAT_RESULT_FOR_VOICE_PROMPT = """You are a writing assistant that takes an existing answer and rewrites it so it is easy for a person to listen to when read out loud.
 
+You will receive:
+- The original answer text.
+- A variable `detected_language` that indicates the desired output language (e.g., "en", "ar"). If it is non-empty and not English, translate the final prose into that language. Otherwise keep it in English.
+
 Think step by step silently before responding.
 
 You will be given some text that may contain Markdown formatting such as headings, bullet points, numbered lists, tables, bold or italic markers, code blocks, or other symbols.

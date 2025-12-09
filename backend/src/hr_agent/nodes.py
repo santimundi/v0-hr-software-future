@@ -482,10 +482,11 @@ class HR_Node:
         log_node_entry("format_result_for_voice")
 
         last_message = state["messages"][-1].content
+        detected_language = state.get("language_detected", "en")
 
         messages = [
             SystemMessage(content=FORMAT_RESULT_FOR_VOICE_PROMPT),
-            HumanMessage(content=last_message),
+            HumanMessage(content=f"Original text: {last_message}\nDetected language: {detected_language}"),
         ]
         response = self.llm.invoke(messages)
 

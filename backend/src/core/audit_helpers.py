@@ -9,8 +9,15 @@ import re
 import logging
 from typing import Any, Dict, Optional
 from src.core.audit import (
-    audit_event, hash_text, extract_tables_from_sql, classify_sql,
-    STORE_FULL_QUERY
+    audit_event,
+    hash_text,
+    extract_tables_from_sql,
+    classify_sql,
+    STORE_FULL_QUERY,
+    new_request_id,
+    request_id_var,
+    thread_id_var,
+    actor_var,
 )
 
 logger = logging.getLogger(__name__)
@@ -733,4 +740,42 @@ def audit_response_sent(
         component="app",
         data=data
     )
+
+
+def set_audit_context(data: Dict[str, Any], request) -> Dict[str, Any]:
+    """
+    Set request/thread/actor context variables and return config + convenience fields.
+    """
+    request_id = new_request_id()
+    request_id_var.set(request_id)
+
+    employee_id = data.get("employee_id", "") or ""
+    thread_id_var.set(employee_id)
+    config = {"configurable": {"thread_id": employee_id}}
+
+    employee_name = data.get("employee_name", "") or ""
+    job_title = data.get("job_title", "") or ""
+    role = data.get("role", "employee") or "employee"
+
+    actor_info = {
+        "employee_id": employee_id,
+        "display_name": employee_name,
+        "job_title": job_title,
+        "role": role,
+    }
+    actor_var.set(actor_info)
+
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+
+    return {
+        "request_id": request_id,
+        "employee_id": employee_id,
+        "employee_name": employee_name,
+        "job_title": job_title,
+        "role": role,
+        "config": config,
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+    }
 
