@@ -1,0 +1,42 @@
+Manager 1:1 Templates (Mock)
+Owner: Alex Rivera (Engineering Manager)
+Classification: Internal
+
+Weekly 1:1 Agenda (45 minutes)
+------------------------------
+1) Check-in (5 min)
+   - Energy level, workload, blockers
+2) Progress & priorities (15 min)
+   - What shipped, what's stuck, what's next
+3) Growth & feedback (10 min)
+   - Coaching, strengths, improvement areas
+4) Team health (10 min)
+   - Collaboration, communication, support needs
+5) Wrap-up (5 min)
+   - Action items, owners, dates
+
+Monthly Career Conversation (60 minutes)
+---------------------------------------
+- Impact review: highlights and outcomes
+- Strengths to leverage
+- Areas to develop with concrete experiments
+- Feedback exchange (two-way)
+- Next-month goals and success criteria
+
+Quarterly Growth Planning (60–90 minutes)
+----------------------------------------
+Inputs:
+- Role expectations
+- Prior quarter goals and outcomes
+- Feedback from peers and stakeholders
+
+Outputs:
+- 1–2 growth goals
+- Concrete experiments (projects, ownership opportunities)
+- Support plan (mentorship, learning, pairing)
+
+Appendix: Example Action Item Log
+--------------------------------
+- [ ] Pair with Sam on incident readiness review – due Feb 10
+- [ ] Draft Q1 scope doc for Platform team – due Feb 14
+- [ ] Identify mentorship pairing for new hire – due Feb 20

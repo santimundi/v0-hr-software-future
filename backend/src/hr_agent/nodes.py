@@ -95,15 +95,20 @@ class HR_Node:
         audit_policy_studio_started(num_scenarios, query_preview)
         
         try:
+
             messages = [
                 SystemMessage(content=POLICY_STUDIO_TESTING_PROMPT),
-                HumanMessage(content=query),
-                *state["messages"]
+                *state["messages"],
+                HumanMessage(content=query)
             ]
+
+
             response = self.llm_with_tools.invoke(messages)
             
             logger.info("Policy studio: analysis completed")
             return {"messages": [response]}
+
+
         except Exception as e:
             logger.error(f"Policy studio evaluation failed: {str(e)}", exc_info=True)
             audit_policy_studio_error(num_scenarios, e, query_preview)
@@ -170,10 +175,11 @@ class HR_Node:
         logger.info(f"Create employee: {user_query}")
 
         messages = [
-            SystemMessage(content=CREATE_EMPLOYEE_PROMPT),
-            HumanMessage(content=user_query),
+            SystemMessage(content=CREATE_EMPLOYEE_PROMPT), 
             *state["messages"]
         ]
+        
+
         response = self.llm_with_tools.invoke(messages)
 
         logger.info(f"Create employee response: {response}")
@@ -191,10 +197,11 @@ class HR_Node:
 
         llm = self.llm.with_structured_output(GeneratedDocsOutput, method="json_schema")
         content = state["messages"][-1].content
+        user_query = state.get("user_query", "")
 
         messages = [
             SystemMessage(content=GENERATE_EMPLOYEE_DOCUMENTS_PROMPT),
-            HumanMessage(content=content),
+            HumanMessage(content=f"User Query: {user_query}\n\n{content}"),
         ]
 
         response = llm.invoke(messages)
@@ -317,11 +324,12 @@ class HR_Node:
         if formatted_context:
             enhanced_query = f"{enhanced_query}\n\nDocument Context:\n{formatted_context}"
 
+        
         # Build messages with system prompt and conversation history
         messages = [
             SystemMessage(content=EXECUTION_PROMPT),
+            *state["messages"],
             HumanMessage(content=enhanced_query),
-            *state["messages"]
         ]
 
         # Log any existing tool responses in the conversation (from previous steps)

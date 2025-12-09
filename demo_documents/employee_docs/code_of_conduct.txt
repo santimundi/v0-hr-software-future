@@ -1,0 +1,136 @@
+# Code of Conduct
+
+**Document ID:** DOC-COC-001\
+**Version:** 2.0\
+**Effective Date:** 2024-02-01\
+**Applies To:** All employees of Northstar Software, Inc. (unless
+otherwise specified)\
+**Status:** Demo / Mock Document (Not legal advice)
+
+> **Note (Demo):** This document is provided for demonstration and
+> training purposes only and does not constitute legal advice. Policies
+> can vary by country/state and should be reviewed by qualified HR/legal
+> counsel before use.
+
+------------------------------------------------------------------------
+
+## 1. Purpose
+
+The Code of Conduct explains expectations for ethical behavior,
+professionalism, and compliance at **Northstar Software, Inc.**. It
+applies to all employees, contractors, and interns.
+
+## 2. Guiding Principles
+
+-   Act with integrity and good judgment
+-   Treat others with respect
+-   Protect company and customer data
+-   Comply with laws and policies
+-   Speak up when something seems wrong
+
+## 3. Respectful Workplace
+
+We do not tolerate discrimination, harassment, bullying, or retaliation.
+
+Examples of unacceptable conduct: - Derogatory comments or slurs -
+Sexual harassment or unwelcome advances - Threats, intimidation, or
+repeated hostility - Excluding others in ways that harm their work
+
+Managers have elevated responsibilities to model respectful behavior and
+to respond promptly to concerns.
+
+## 4. Equal Opportunity & Inclusion
+
+We support equal opportunity and strive to maintain diverse teams.
+Employment decisions must be based on business needs and merit.
+
+## 5. Conflicts of Interest
+
+Avoid conflicts and disclose potential conflicts, including: - Working
+for a competitor - Personal relationships that affect reporting lines -
+Vendor relationships involving family/friends - Outside business
+interests that intersect with company work
+
+When in doubt, disclose.
+
+## 6. Gifts, Entertainment, and Anti-Bribery
+
+Employees must not: - Offer, promise, or accept bribes - Provide gifts
+that create an appearance of improper influence - Accept cash or cash
+equivalents
+
+Modest business meals may be acceptable if lawful and appropriately
+documented.
+
+## 7. Confidentiality & Company Property
+
+Protect confidential information, including: - Customer data and
+contracts - Product roadmaps and code - Security reports and incident
+details - HR data (salary, performance, personal details)
+
+Company property includes devices, credentials, and intellectual
+property created in the course of employment.
+
+## 8. Security & Data Privacy
+
+### 8.1 Access Control
+
+Use least privilege. Do not attempt to access data you are not
+authorized to view. Access is monitored and logged.
+
+### 8.2 Safe Systems Use
+
+-   Use approved tools and platforms
+-   Keep systems patched
+-   Report suspected phishing or incidents immediately
+
+### 8.3 AI Tools
+
+Do not share confidential or personal data with non-approved AI tools.
+Use approved workflows and follow AI safety settings.
+
+## 9. Financial Integrity & Records
+
+Accurate recordkeeping is required. Do not: - Falsify expense reports -
+Manipulate performance metrics - Misrepresent time worked or time off
+
+## 10. Workplace Health & Safety
+
+Follow safety procedures and report hazards. Violence, threats, or
+weapons (where prohibited) are not allowed.
+
+## 11. Reporting Concerns (Speak Up)
+
+Report concerns promptly via: - Manager - HR - Compliance/ethics
+channel - Anonymous reporting where available
+
+Non-retaliation is strictly enforced.
+
+## 12. Investigations and Corrective Action
+
+The company may investigate reported issues and take action including
+coaching, warnings, performance plans, or termination. Serious
+violations may lead to immediate termination.
+
+------------------------------------------------------------------------
+
+## Appendix A: Examples (Quick Reference)
+
+**Okay:** - Declining a gift politely - Reporting a suspected data leak
+immediately - Giving respectful feedback in private
+
+**Not okay:** - Looking up coworkers' salaries "out of curiosity" -
+Sharing customer data in a public Slack channel - Retaliating against
+someone who reported misconduct
+
+------------------------------------------------------------------------
+
+## Appendix B: FAQs
+
+**Q: Can I talk about my compensation?**\
+A: Local laws vary; in many jurisdictions employees have rights to
+discuss pay. Still, do not disclose other people's pay or confidential
+HR records.
+
+**Q: What if my manager is involved in the issue?**\
+A: Report to HR or use an alternative reporting channel.

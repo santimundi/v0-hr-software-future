@@ -1,0 +1,63 @@
+Incident Escalation Playbook (Mock)
+Owner: Alex Rivera (Engineering Manager)
+Classification: Internal
+
+Purpose
+-------
+This playbook documents how the engineering organization responds to incidents, including severity levels, roles,
+communication cadence, stakeholder updates, and post-incident requirements. It is intentionally verbose to simulate
+a multi-page manager document for UI upload/testing.
+
+Severity Levels
+---------------
+Sev-1: Full outage, major data loss risk, security breach indicators.
+Sev-2: Partial outage, degraded performance across key systems.
+Sev-3: Localized issues, workarounds available.
+Sev-4: Minor defects, no immediate impact.
+
+Roles & Responsibilities
+------------------------
+Incident Commander (IC): Owns coordination, decision-making, and call cadence.
+Operations Lead: Executes mitigations, coordinates on-call engineers.
+Comms Lead: Drafts updates, manages stakeholder messages.
+Scribe: Maintains timeline, captures actions and decisions.
+Subject Matter Experts (SMEs): Investigate hypotheses, implement fixes.
+
+First 15 Minutes Checklist
+--------------------------
+1) Declare incident channel and assign IC.
+2) Establish current impact, scope, and customer-facing symptoms.
+3) Start a timeline with timestamps for every major action.
+4) Freeze risky deployments if warranted.
+5) Identify short-term mitigations and owners.
+6) Confirm alerting signals and dashboards.
+
+Communication Cadence
+---------------------
+Sev-1: Update internal stakeholders every 15 minutes; external updates every 30 minutes when applicable.
+Sev-2: Update internal stakeholders every 30 minutes; external updates hourly if needed.
+Sev-3/4: As-needed; document outcome in incident ticket.
+
+Escalation Triggers
+-------------------
+- Multiple services impacted
+- Repeated failures after rollback
+- Security or privacy indicators
+- On-call exhaustion or lack of coverage
+
+Postmortem Requirements (Blameless)
+-----------------------------------
+Hold a postmortem within 5 business days:
+- Summary of impact
+- Timeline
+- Root cause analysis
+- Contributing factors
+- What went well / what went poorly
+- Action items with owners + due dates
+
+Appendix: Timeline Template
+---------------------------
+YYYY-MM-DD HH:MM UTC – Alert fired: …
+YYYY-MM-DD HH:MM UTC – IC assigned: …
+YYYY-MM-DD HH:MM UTC – Mitigation attempted: …
+YYYY-MM-DD HH:MM UTC – Resolved: …

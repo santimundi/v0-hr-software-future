@@ -1,0 +1,178 @@
+# PTO and Leave Policy
+
+**Document ID:** DOC-TO-001\
+**Version:** 3.2\
+**Effective Date:** 2024-01-15\
+**Applies To:** All employees of Northstar Software, Inc. (unless
+otherwise specified)\
+**Status:** Demo / Mock Document (Not legal advice)
+
+> **Note (Demo):** This document is provided for demonstration and
+> training purposes only and does not constitute legal advice. Policies
+> can vary by country/state and should be reviewed by qualified HR/legal
+> counsel before use.
+
+------------------------------------------------------------------------
+
+## 1. Overview
+
+This policy covers paid time off (PTO), sick leave, holidays, and other
+leave types. Local laws and individual employment contracts may provide
+additional rights or different requirements.
+
+**Principles:** - Time off supports health, productivity, and
+sustainability - We plan ahead to maintain coverage - Access is fair,
+consistent, and auditable
+
+## 2. Annual Leave / PTO
+
+### 2.1 Eligibility
+
+All full-time employees accrue annual PTO. Part-time employees accrue
+pro-rata.
+
+### 2.2 Entitlement & Accrual (Example)
+
+-   **20 days per calendar year** for full-time employees
+-   Accrues at **1.67 days per month**
+-   Accrual begins on the employee's start date
+
+### 2.3 Carry Over
+
+Up to **5 days** may be carried over to the next year. Carried-over days
+must be used by **March 31** unless otherwise required by local law.
+
+### 2.4 Request Process
+
+1.  Submit PTO requests at least **2 weeks** in advance for planned
+    leave
+2.  Manager approval is required
+3.  HR approval required for **\>10 consecutive business days** (example
+    control)
+
+Requests should include: - Date range - Any partial days - Coverage plan
+(handoff notes, point of contact)
+
+### 2.5 Blackout / Peak Periods
+
+During high-demand periods (e.g., fiscal year-end, major releases),
+leave may require additional review. Where possible, teams should
+publish blackout periods in advance.
+
+### 2.6 Partial Days & Hourly Conversion
+
+Teams may track PTO in days or hours. If tracked in hours, PTO is
+deducted based on the employee's standard daily hours.
+
+## 3. Sick Leave
+
+### 3.1 Entitlement (Example)
+
+Employees receive **10 days** sick leave per year. Unused sick leave
+does not carry over unless required by local law.
+
+### 3.2 Notification
+
+Employees should notify their manager before the scheduled start time on
+the first day of absence (or as soon as practical).
+
+### 3.3 Documentation
+
+A medical note may be required for absences exceeding **3 consecutive
+workdays** (subject to local law). Employees should not share detailed
+diagnoses unless necessary; HR can facilitate privacy-preserving
+documentation.
+
+## 4. Personal Days (Example)
+
+Employees may have **2 personal days** per year for urgent matters that
+don't fit PTO or sick leave categories. Personal days: - Are requested
+through the same system as PTO - Typically do not carry over
+
+## 5. Holidays
+
+The company observes paid holidays based on the employee's work
+location. A holiday calendar is published annually. If business needs
+require working on a holiday, managers will coordinate alternative time
+off where permitted.
+
+## 6. Parental Leave (Example)
+
+Eligible employees who become parents through birth, adoption, or foster
+placement may receive paid parental leave. Details vary by jurisdiction.
+Example framework: - Primary caregiver: up to 12 weeks paid - Secondary
+caregiver: up to 6 weeks paid
+
+Employees should notify HR as early as possible to coordinate leave,
+benefits, and payroll.
+
+## 7. Bereavement Leave (Example)
+
+Employees may take bereavement leave in the event of a family member's
+death. Example: - 3 days paid for immediate family - Additional unpaid
+leave may be approved
+
+## 8. Jury Duty / Civic Leave
+
+Employees may take leave for jury duty or civic obligations per local
+law. Provide documentation when available. The company will not
+retaliate for lawful civic participation.
+
+## 9. Unpaid Leave & Special Leave
+
+Employees may request unpaid leave for: - Extended travel - Personal or
+family reasons - Education or sabbatical (where offered)
+
+Approval depends on role, performance, and business needs and must be
+documented.
+
+## 10. Leave Tracking, Approvals & Auditing
+
+### 10.1 System of Record
+
+All leave should be requested and approved through the HRIS/time-off
+system. Email approvals should be avoided unless the system is
+unavailable.
+
+### 10.2 Approval Expectations
+
+Managers should consider: - Policy eligibility and notice period - Team
+coverage - Ongoing deadlines or operational risk
+
+### 10.3 Audit & Access Controls
+
+Leave data is personal data. Access is role-based: - Employees can view
+their own leave - Managers can view direct reports' leave - HR can view
+for legitimate HR purposes All access is logged.
+
+## 11. Misuse & Corrective Action
+
+Examples of misuse: - Repeated last-minute absences without notice -
+Misrepresentation of leave - Working while on medical leave in violation
+of guidelines
+
+Misuse may lead to corrective action.
+
+------------------------------------------------------------------------
+
+## Appendix A: Manager Coverage Planning (Guidance)
+
+When evaluating a request: 1. Validate entitlement/balance 2. Review
+overlap with other leave 3. Identify coverage risks (on-call, customer
+commitments) 4. Propose alternatives if necessary (split leave,
+different dates, partial coverage)
+
+------------------------------------------------------------------------
+
+## Appendix B: Employee FAQs
+
+**Q: Can I take PTO if I'm out of sick leave?**\
+A: In some cases yes, subject to manager approval and local law.
+
+**Q: What happens if I leave the company?**\
+A: PTO payout rules vary by jurisdiction and policy. HR will provide an
+exit statement.
+
+**Q: Can my manager deny leave?**\
+A: Managers can deny or propose alternatives to maintain business
+continuity, but should do so fairly and consistently.

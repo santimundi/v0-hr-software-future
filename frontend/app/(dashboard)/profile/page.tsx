@@ -21,12 +21,6 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-semibold tracking-tight">My Profile</h1>
           <p className="text-muted-foreground">Your HR profile and what the AI can access</p>
         </div>
-        <Link href="/chat?prompt=Tell me about my profile and career progress">
-          <Button className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Ask Copilot about this page
-          </Button>
-        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

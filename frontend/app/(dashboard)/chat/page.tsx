@@ -1,5 +1,5 @@
+ "use client"
 import { submitApproval } from "@/lib/voiceApproval"
-"use client"
 
 import { useState, useRef, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"

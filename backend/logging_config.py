@@ -24,15 +24,6 @@ except ImportError:
     log_execution_separator = None
 
 
-class FlushingRotatingFileHandler(RotatingFileHandler):
-    """
-    A RotatingFileHandler that flushes after each log entry to ensure real-time writes.
-    """
-    def emit(self, record):
-        super().emit(record)
-        self.flush()  # Flush immediately after each log entry
-
-
 def setup_logging(log_dir: str = "logs") -> None:
     """
     Configure logging for the application.
@@ -74,10 +65,9 @@ def setup_logging(log_dir: str = "logs") -> None:
     # Remove existing handlers to avoid duplicates
     root_logger.handlers.clear()
     
-    # Handler 1: App log (INFO and above) - with rotation
+    # Handler 1: App log (INFO and above) - with rotation, buffered (no per-record flush)
     # Note: Using 'w' mode for testing (overwrites on each run)
-    # Using FlushingRotatingFileHandler to ensure real-time log writes
-    app_handler = FlushingRotatingFileHandler(
+    app_handler = RotatingFileHandler(
         app_log_file,
         mode='w',  # Write mode (overwrite) - for testing purposes
         maxBytes=10 * 1024 * 1024,  # 10MB per file
@@ -89,9 +79,8 @@ def setup_logging(log_dir: str = "logs") -> None:
     app_handler.addFilter(lambda record: record.levelno >= logging.INFO)
     root_logger.addHandler(app_handler)
     
-    # Handler 2: Errors log (ERROR and CRITICAL only) - with rotation
-    # Note: Using FlushingRotatingFileHandler to ensure real-time log writes
-    errors_handler = FlushingRotatingFileHandler(
+    # Handler 2: Errors log (ERROR and CRITICAL only) - with rotation (kept flushy is acceptable; volume is low)
+    errors_handler = RotatingFileHandler(
         errors_log_file,
         mode='a',  # Append mode (explicit - industry standard)
         maxBytes=10 * 1024 * 1024,  # 10MB per file

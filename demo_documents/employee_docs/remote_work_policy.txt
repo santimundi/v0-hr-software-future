@@ -1,0 +1,186 @@
+# Remote Work Policy
+
+**Document ID:** DOC-RW-001\
+**Version:** 4.0\
+**Effective Date:** 2024-03-01\
+**Applies To:** All employees of Northstar Software, Inc. (unless
+otherwise specified)\
+**Status:** Demo / Mock Document (Not legal advice)
+
+> **Note (Demo):** This document is provided for demonstration and
+> training purposes only and does not constitute legal advice. Policies
+> can vary by country/state and should be reviewed by qualified HR/legal
+> counsel before use.
+
+------------------------------------------------------------------------
+
+## 1. Purpose & Scope
+
+This policy defines how remote and hybrid work operates at **Northstar
+Software, Inc.**. It applies to employees in roles eligible for remote
+work, subject to manager approval and business needs. Some roles (e.g.,
+facilities, certain support functions) may require on-site presence.
+
+Remote work is a work arrangement---not a benefit or entitlement. The
+company may modify remote arrangements as team needs change.
+
+## 2. Definitions
+
+-   **Remote work:** Work performed off-site (home or another approved
+    location).
+-   **Hybrid work:** Combination of on-site and remote work.
+-   **Core hours:** Time window when employees should be generally
+    available for collaboration (unless otherwise agreed).
+
+## 3. Eligibility
+
+Employees are generally eligible if they: - Have completed probation (or
+an equivalent introductory period) - Meet performance and reliability
+expectations - Have a role that can be performed effectively off-site -
+Maintain an appropriate work environment (see Section 6)
+
+Managers may deny or modify remote schedules based on: - Customer
+needs - Security requirements - Team collaboration requirements -
+Performance or conduct concerns
+
+## 4. Remote/Hybrid Schedule
+
+### 4.1 Standard Guideline
+
+A common arrangement is up to **3 days per week** remote, with manager
+approval. Teams may adopt different schedules.
+
+### 4.2 Core Hours
+
+Employees should be available during core hours such as **10:00--16:00
+local time** (team-defined). Work outside core hours may be flexible,
+but should not create sustained collaboration gaps.
+
+### 4.3 Location Constraints
+
+Remote work must be performed from an approved location. Employees
+must: - Provide an address for emergency and tax compliance purposes
+(where required) - Notify HR/manager of changes to primary work
+location - Obtain written approval before working from a different
+country/state if it impacts tax, payroll, or compliance
+
+## 5. Performance & Communication Expectations
+
+Remote work succeeds when expectations are explicit:
+
+-   **Availability:** Maintain agreed working hours and respond within
+    reasonable timeframes.
+-   **Meetings:** Join on time, camera use as team norms require, and
+    stay engaged.
+-   **Documentation:** Prefer written updates in shared channels
+    (tickets, docs) over private messages.
+-   **Output:** Performance is evaluated on results, not visible
+    activity.
+
+Recommended team norms: - Daily async updates (e.g., "what I'm doing
+today / blockers") - Calendar hygiene (keep availability updated) -
+Meeting discipline (agendas, outcomes, action items)
+
+## 6. Workspace Requirements & Safety
+
+Employees must maintain a safe, professional workspace: - Reliable
+internet and phone access (as role requires) - A quiet environment
+suitable for calls - A dedicated workspace that protects confidential
+information - Ergonomic setup (chair, monitor height, lighting)
+
+Employees should: - Take breaks and maintain healthy work habits -
+Report work-related injuries or incidents promptly
+
+## 7. Equipment, IT Support & Expenses
+
+### 7.1 Company-Provided Equipment
+
+Depending on role, the company may provide: - Laptop and accessories -
+Security key or MFA device - Standard peripherals (mouse, headset)
+
+All equipment remains company property.
+
+### 7.2 Software and Updates
+
+Employees must: - Install security updates promptly - Use
+company-approved software - Not disable endpoint protection
+
+### 7.3 Expense Reimbursement (Example Policy)
+
+Remote work expenses may be reimbursed if pre-approved: - Internet
+stipend (if offered) - Ergonomic equipment (with receipts) - Travel to
+company offices when required
+
+The company does not reimburse discretionary home office upgrades unless
+pre-approved.
+
+## 8. Information Security & Privacy
+
+### 8.1 Data Handling
+
+-   Do not print sensitive information unless required and approved
+-   Store confidential documents securely
+-   Lock screens when away
+-   Use VPN where required
+
+### 8.2 Public Wi-Fi
+
+Avoid public Wi-Fi for sensitive work. If unavoidable, use: - VPN -
+Tethering - Secure hotspots
+
+### 8.3 Recording & Monitoring
+
+The company may monitor systems for security and compliance. This is not
+intended for micromanagement; it supports safety and legal obligations.
+
+## 9. Meetings & On-Site Requirements
+
+Managers may require periodic on-site attendance for: - Team planning
+sessions - Customer visits - Security-sensitive work - Training or
+onboarding
+
+Employees should plan for reasonable travel when necessary. Travel
+policies apply.
+
+## 10. Exceptions & Reviews
+
+Remote arrangements should be reviewed periodically. Exceptions may be
+granted for: - Medical accommodations - Family needs - Temporary
+relocation requests
+
+All exceptions must be documented and approved by HR/leadership as
+needed.
+
+## 11. Policy Violations
+
+Failure to comply may result in: - Adjustment or removal of remote work
+privileges - Corrective action under the Code of Conduct - Security
+incident procedures (if data is compromised)
+
+------------------------------------------------------------------------
+
+## Appendix: Remote Work Checklist
+
+**Before going remote:** - Confirm schedule and core hours - Test
+connectivity and audio/video - Ensure MFA is working - Review data
+handling rules
+
+**Weekly hygiene:** - Keep calendar updated - Post status updates -
+Document decisions and action items - Confirm next week's collaboration
+needs
+
+------------------------------------------------------------------------
+
+## FAQs
+
+**Q: Can I work remotely while traveling?**\
+A: Short domestic travel may be permitted with manager approval, subject
+to security and time zone constraints. International travel requires
+additional approvals due to tax/compliance.
+
+**Q: What if my internet goes out?**\
+A: Notify your manager immediately and use backup options (hotspot or
+alternative location) if feasible.
+
+**Q: Can remote workers be promoted?**\
+A: Yes. Promotions are based on impact, not location.

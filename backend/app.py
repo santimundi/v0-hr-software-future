@@ -45,15 +45,15 @@ load_dotenv(".env.local")
 
 
 # We create the LLM once per process; no need to recreate it per request.
-# llm = ChatAnthropic(
-#     model="claude-sonnet-4-5-20250929",
-#     api_key=os.getenv("CLAUDE_API_KEY"),
-# )
-llm = ChatGroq(
-   model="openai/gpt-oss-20b",
-   #model="moonshotai/kimi-k2-instruct-0905",
-   api_key=os.getenv("GROQ_API_KEY"),
+llm = ChatAnthropic(
+    model="claude-sonnet-4-5-20250929",
+    api_key=os.getenv("CLAUDE_API_KEY"),
 )
+# llm = ChatGroq(
+#    #model="openai/gpt-oss-120b",
+#    model="moonshotai/kimi-k2-instruct-0905",
+#    api_key=os.getenv("GROQ_API_KEY"),
+# )
 
 
 def _get_llm_model_name() -> str:
@@ -164,7 +164,7 @@ async def answer_query(request: Request):
     # 1) RESUME PATH (user provided feedback)
     query = data.get("query", "")
     selected_scopes = data.get("selected_scopes", ["all"])
-    logger.info("Handling request in /query endpoint")
+    logger.debug("Handling request in /query endpoint")
     
     if "resume" in data:
         # Log resume request (without sensitive text)
@@ -178,9 +178,9 @@ async def answer_query(request: Request):
         
         # Log document_name if provided
         if document_name:
-            logger.info(f"[query] Received query with document_name: '{document_name}'")
+            logger.debug(f"[query] Received query with document_name: '{document_name}'")
         else:
-            logger.info("[query] Received query without document_name")
+            logger.debug("[query] Received query without document_name")
         
         # Invoke graph first to generate query_topic
         result = await graph.ainvoke(
@@ -333,7 +333,7 @@ async def voice(
     stt_model: str = Form("whisper-large-v3-turbo"),
     tts_model: str = Form("playai-tts"),
     tts_voice: str = Form("Aaliyah-PlayAI"),
-    tts_encoding: str = Form("wav"),
+    tts_encoding: str = Form("mp3"),
     resume: str = Form(None),
 ):
     """
@@ -345,7 +345,7 @@ async def voice(
     5. Uploads audio to Supabase Storage
     6. Returns signed URL for frontend to play
     """
-    logger.info("Handling request in /voice endpoint")
+    logger.debug("Handling request in /voice endpoint")
     start_time = time.time()
 
     # Set audit context
@@ -389,9 +389,9 @@ async def voice(
         if not transcript:
             raise HTTPException(status_code=400, detail="Could not transcribe audio")
 
-        logger.info(f"Voice transcript: {transcript[:100]}...")
+        logger.debug(f"Voice transcript: {transcript[:100]}...")
         if detected_lang:
-            logger.info(f"Voice detected language: {detected_lang}")
+            logger.debug(f"Voice detected language: {detected_lang}")
 
         # Audit: treat transcript as the "query"
         audit_request_received(
@@ -461,7 +461,7 @@ async def voice(
         voice=selected_voice,
         response_format=tts_encoding,
     )
-    logger.info(f"TTS model: {selected_model}, voice: {selected_voice}, lang: {detected_lang}")
+    logger.debug(f"TTS model: {selected_model}, voice: {selected_voice}, lang: {detected_lang}")
 
     # 7. Upload to Supabase Storage and get signed URL
     if not app.state.supabase_admin:

@@ -1,0 +1,172 @@
+# Benefits Enrollment Guide
+
+**Document ID:** DOC-BEN-001\
+**Version:** 2.5\
+**Effective Date:** 2024-01-01\
+**Applies To:** All employees of Northstar Software, Inc. (unless
+otherwise specified)\
+**Status:** Demo / Mock Document (Not legal advice)
+
+> **Note (Demo):** This document is provided for demonstration and
+> training purposes only and does not constitute legal advice. Policies
+> can vary by country/state and should be reviewed by qualified HR/legal
+> counsel before use.
+
+------------------------------------------------------------------------
+
+## 1. Overview
+
+This guide explains benefit options at **Northstar Software, Inc.**,
+eligibility rules, enrollment windows, and how to make changes. Benefit
+availability varies by location and role.
+
+**Benefits typically include:** - Medical, dental, and vision
+insurance - Life and disability insurance - Retirement plan (e.g.,
+401(k) or equivalent) - Health savings / flexible spending accounts
+(HSA/FSA) where applicable - Wellness stipend and employee assistance
+resources (EAP) - Optional benefits (commuter, supplemental coverage)
+
+## 2. Eligibility
+
+An employee is eligible for benefits if: - They are in an eligible
+employment category (e.g., full-time) - They meet any waiting period
+requirements (if applicable) - They reside in a location where the
+benefit is offered
+
+**Eligible dependents** may include: - Legal spouse or domestic partner
+(where allowed) - Children up to a specified age (commonly 26),
+including adopted children
+
+Documentation may be required (marriage certificate, birth certificate,
+etc.).
+
+## 3. Enrollment Windows
+
+### 3.1 New Hire Enrollment
+
+New hires typically must enroll within **30 days** of start date. If you
+miss the window, you may have to wait until Open Enrollment unless you
+have a Qualifying Life Event (QLE).
+
+### 3.2 Open Enrollment
+
+Open Enrollment occurs annually (example: November). During this period,
+employees can: - Add or drop coverage - Change plan types - Update
+dependents - Adjust FSA/HSA contributions
+
+### 3.3 Qualifying Life Events (QLE)
+
+A QLE allows you to change benefits outside Open Enrollment. Examples: -
+Marriage/divorce - Birth/adoption - Loss of other coverage - Relocation
+to a new coverage area
+
+Changes must typically be made within **30 days** of the event.
+
+## 4. Medical Coverage (Example Options)
+
+Common plan types: - **PPO:** More provider flexibility, higher
+premiums - **HMO:** Lower premiums, network restrictions, PCP
+referrals - **HDHP + HSA:** Higher deductible, lower premiums, HSA
+eligibility
+
+Key terms: - **Premium:** Amount you pay per paycheck/month -
+**Deductible:** Amount you pay before insurance pays - **Copay:** Fixed
+cost per visit - **Coinsurance:** Percentage share after deductible -
+**Out-of-pocket max:** Maximum you pay in a year (covered services)
+
+### Choosing a Plan (Simple Guide)
+
+-   Choose **PPO** if you want flexibility and frequent care
+-   Choose **HMO** if you want lower premiums and your providers are
+    in-network
+-   Choose **HDHP+HSA** if you want lower premiums, are generally
+    healthy, and want tax-advantaged savings
+
+## 5. Dental and Vision (Example)
+
+Dental plans often cover: - Preventive care (cleanings) - Basic services
+(fillings) - Major services (crowns), possibly with a waiting period
+
+Vision plans often cover: - Annual eye exam - Frames/lenses allowance -
+Contacts allowance
+
+## 6. Life and Disability Insurance (Example)
+
+### 6.1 Life Insurance
+
+Company-paid life insurance may be provided (example: 1--2x annual
+salary). Supplemental life may be available for employees and
+dependents.
+
+### 6.2 Short-Term and Long-Term Disability
+
+Disability insurance replaces income during qualifying illness/injury.
+Terms vary; consult plan documents for waiting periods and benefit
+percentages.
+
+## 7. Retirement Plan (Example: 401(k))
+
+The company may provide: - Employee contributions via payroll - Company
+match (example: 4% match) - Vesting schedule (example: vests over 3
+years)
+
+Employees can: - Set contribution percentages - Choose investment
+options - Update beneficiaries
+
+## 8. Wellness & Stipends (Example)
+
+Example offering: - **\$500 annual wellness stipend** for gym
+memberships, fitness equipment, classes, or wellness programs
+
+Employees should submit receipts through the reimbursement portal per
+policy.
+
+## 9. How to Enroll (Step-by-Step)
+
+1.  Log into the Benefits Portal
+2.  Confirm personal information and dependents
+3.  Select medical/dental/vision plans
+4.  Choose voluntary benefits (if applicable)
+5.  Enter HSA/FSA contribution amounts (if applicable)
+6.  Review costs per paycheck
+7.  Confirm beneficiaries
+8.  Submit and save confirmation
+
+## 10. Common Pitfalls (Avoid These)
+
+-   Missing the enrollment window
+-   Forgetting to add dependents
+-   Not designating beneficiaries
+-   Selecting an FSA amount you can't justify (FSA may have "use it or
+    lose it" rules)
+-   Assuming your doctor is in-network (verify!)
+
+## 11. Support
+
+If you need help: - Contact HR Benefits Support - Contact the insurance
+provider support line - Ask your manager for scheduling flexibility to
+complete enrollment
+
+------------------------------------------------------------------------
+
+## Appendix A: Glossary
+
+**Coinsurance:** Your percentage responsibility after deductible\
+**Deductible:** Amount you pay before plan coverage begins\
+**EOB:** Explanation of Benefits statement from insurer\
+**In-network:** Providers contracted with insurer at negotiated rates\
+**Premium:** Cost deducted from paycheck to maintain coverage
+
+------------------------------------------------------------------------
+
+## Appendix B: FAQs
+
+**Q: Can I waive coverage?**\
+A: Yes, if you have other coverage. You may need to provide proof.
+
+**Q: If I add a dependent later, can I update benefits?**\
+A: Only during Open Enrollment or after a QLE.
+
+**Q: What happens if I leave the company?**\
+A: Depending on location, you may be eligible for continuation coverage
+(e.g., COBRA in the US) or other arrangements.

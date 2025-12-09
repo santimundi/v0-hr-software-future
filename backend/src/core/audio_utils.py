@@ -39,7 +39,7 @@ def _get_groq_client() -> Groq:
 def groq_whisper_transcribe_bytes(
     audio_bytes: bytes,
     *,
-    model: str = "whisper-large-v3-turbo",
+    model: str = "whisper-large-v3",
     response_format: str = "verbose_json",
     temperature: float = 0.0,
     filename: str = "audio.webm",
@@ -78,7 +78,7 @@ def groq_tts_bytes(
     text: str,
     *,
     model: str = "playai-tts",
-    voice: str = "Aaliyah-PlayAI",
+    voice: str = "Cheyenne-PlayAI",
     response_format: str = "wav",
 ) -> bytes:
     """

@@ -1,0 +1,236 @@
+# Employment Agreement (Template) --- Northstar Software, Inc.
+
+**Employee:** Emma Johnson\
+**Position:** Senior Software Engineer\
+**Company:** Northstar Software, Inc.\
+**Company Location:** Austin, Texas, USA\
+**Effective Date:** January 8, 2024
+
+> **Demo / Template Notice (Not Legal Advice):** This document is a
+> sample employment agreement for demonstration purposes only.
+> Employment agreements should be reviewed by qualified legal counsel
+> and adapted to applicable federal, state, and local laws.
+
+------------------------------------------------------------------------
+
+## 1. Parties
+
+This Employment Agreement (the "Agreement") is entered into by and
+between **Northstar Software, Inc.** (the "Company") and **Emma
+Johnson** (the "Employee"), effective as of the **Effective Date** set
+forth above.
+
+## 2. Position; Start Date; Duties
+
+### 2.1 Position
+
+The Company employs Employee as a **Senior Software Engineer**. Employee
+will report to a manager designated by the Company (the "Manager").
+
+### 2.2 Start Date
+
+Employee's employment commenced on **January 8, 2024** (the "Start
+Date").
+
+### 2.3 Duties and Responsibilities
+
+Employee will: - Perform software engineering duties consistent with the
+Senior Software Engineer role, including designing, developing, testing,
+deploying, and maintaining software systems. - Participate in code
+reviews, incident response/on-call rotations (if applicable), and
+technical planning. - Collaborate with cross-functional teams (product,
+design, QA, security, and operations). - Perform other duties reasonably
+assigned by the Company that are consistent with Employee's position and
+skills.
+
+### 2.4 Work Location
+
+Employee's primary work location is **Austin, Texas**, or such other
+location as may be agreed upon by the Company and Employee. The Company
+may require reasonable travel as needed for business purposes.
+
+## 3. Employment Relationship (At-Will)
+
+### 3.1 At-Will Employment
+
+Employee's employment with the Company is **at-will**. This means that
+either the Company or Employee may terminate the employment relationship
+at any time, with or without cause, and with or without notice, subject
+to applicable law.
+
+### 3.2 No Contract for a Term
+
+Nothing in this Agreement creates a contract for a specific term of
+employment. Any modification of at-will status must be in a written
+agreement signed by Employee and the Company's authorized officer.
+
+## 4. Compensation
+
+### 4.1 Base Salary
+
+Employee will be paid a base salary of **USD \$125,000 per year**, less
+applicable taxes and withholdings, payable in accordance with the
+Company's standard payroll practices.
+
+### 4.2 Performance Reviews and Adjustments
+
+Employee's performance and compensation may be reviewed periodically in
+accordance with Company practice. Any salary adjustments are
+discretionary and will be determined by the Company.
+
+### 4.3 Business Expenses
+
+The Company will reimburse Employee for reasonable and necessary
+business expenses incurred in the performance of duties, in accordance
+with Company policy and subject to required documentation and approvals.
+
+## 5. Work Schedule; Timekeeping
+
+### 5.1 Standard Working Hours
+
+Employee's standard work schedule is **Monday through Friday, 9:00 AM to
+5:00 PM** local time, with reasonable flexibility as business needs
+require.
+
+### 5.2 Exempt Classification (Typical for Senior Engineers)
+
+Employee is expected to be classified as **exempt** under the Fair Labor
+Standards Act (FLSA), subject to applicable law and Company
+determination. Exempt employees are paid on a salary basis and are
+expected to fulfill their responsibilities regardless of specific hours
+worked.
+
+## 6. Benefits and Leave
+
+### 6.1 Benefits
+
+Employee will be eligible to participate in the Company's benefit plans
+generally offered to similarly situated employees, subject to plan terms
+and eligibility requirements. Benefits may include health insurance,
+retirement plans, and wellness programs as offered by the Company.
+
+### 6.2 Paid Time Off and Holidays
+
+Employee will be eligible for Company leave and holiday policies as in
+effect from time to time. Company policies may be updated at the
+Company's discretion, subject to applicable law.
+
+## 7. Confidentiality and Data Security
+
+### 7.1 Confidential Information
+
+"Confidential Information" includes non-public information relating to
+the Company's business, products, customers, pricing, finances,
+employees, systems, security practices, source code, and trade secrets,
+as well as any third-party confidential information entrusted to the
+Company.
+
+### 7.2 Non-Disclosure Obligation
+
+Employee agrees to: - Hold all Confidential Information in strict
+confidence. - Use Confidential Information solely for Company
+business. - Not disclose Confidential Information to any third party
+without the Company's prior written consent, except as required by law.
+
+### 7.3 Data Security and Acceptable Use
+
+Employee agrees to comply with Company information security policies,
+including: - Using Company-approved devices, accounts, and tools for
+Company work. - Maintaining strong passwords and multi-factor
+authentication where required. - Promptly reporting suspected security
+incidents, data loss, or unauthorized access.
+
+## 8. Company Property
+
+All Company property (including laptops, keys, badges, documents, and
+any Company data) remains the Company's property. Upon termination of
+employment or upon request, Employee will promptly return all Company
+property and delete/return any Company data in Employee's possession,
+custody, or control.
+
+## 9. Intellectual Property; Work Product
+
+### 9.1 Work Product
+
+"Work Product" means inventions, discoveries, designs, improvements,
+processes, works of authorship, software, documentation, and other
+materials created by Employee (alone or with others) during employment
+that relate to the Company's business or are created using Company time,
+equipment, or resources.
+
+### 9.2 Assignment
+
+To the fullest extent permitted by law, Employee assigns to the Company
+all right, title, and interest in and to all Work Product, including all
+intellectual property rights.
+
+### 9.3 Further Assurances
+
+Employee agrees to sign documents and take reasonable actions necessary
+to secure or confirm the Company's rights in Work Product.
+
+## 10. Conflicts of Interest; Outside Activities
+
+Employee agrees to avoid conflicts of interest and to disclose any
+potential conflicts promptly. Employee will not engage in outside
+employment or consulting that materially interferes with job
+responsibilities or competes with the Company, without prior written
+approval, subject to applicable law.
+
+## 11. Policies; Code of Conduct
+
+Employee agrees to comply with all Company policies and standards of
+conduct as may be updated from time to time. Company policies are
+guidelines and do not create a contract.
+
+## 12. Termination; Final Pay
+
+Upon termination of employment, Employee will receive final pay in
+accordance with applicable law and Company policy, including any accrued
+but unused paid time off if required by applicable law or policy.
+
+## 13. Governing Law
+
+This Agreement is governed by the laws of the **State of Texas**,
+without regard to conflict-of-law principles, except to the extent
+federal law or mandatory local law governs.
+
+## 14. General Provisions
+
+### 14.1 Entire Agreement
+
+This Agreement constitutes the entire agreement between the parties
+regarding Employee's employment and supersedes prior discussions or
+representations.
+
+### 14.2 Amendments
+
+Any amendment to this Agreement must be in writing and signed by both
+parties.
+
+### 14.3 Severability
+
+If any provision is held unenforceable, the remaining provisions will
+remain in effect.
+
+### 14.4 Electronic Signatures
+
+Signatures may be executed electronically and will be deemed binding.
+
+------------------------------------------------------------------------
+
+## 15. Signatures
+
+**Northstar Software, Inc.**
+
+Signature: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+Name:
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+Title:
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+Date: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+**Employee: Emma Johnson**
+
+Signature: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\
+Date: \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_

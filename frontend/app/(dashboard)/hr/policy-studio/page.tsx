@@ -270,19 +270,24 @@ export default function PolicyStudioPage() {
       const data = await response.json()
       
       // Parse the response to extract answer and documents cited
-      const responseText = data.data || ""
+      const responseText =
+        typeof data?.data === "string"
+          ? data.data
+          : typeof data?.text === "string"
+            ? data.text
+            : ""
       
       // Extract documents cited from the response
       // The format is: "**Documents cited**" followed by a list of document names
-      const documentsCitedMatch = responseText.match(/\*\*Documents cited\*\*[\s\n]+(.*?)(?:\n\n|\n$|$)/is)
+      const documentsCitedMatch = responseText.match(/\*\*Documents cited\*\*[\s\n]+([\s\S]*?)(?:\n\n|\n$|$)/i)
       let policiesChecked: string[] = []
       let answerText = responseText
       
-      if (documentsCitedMatch) {
+      if (documentsCitedMatch && typeof documentsCitedMatch[1] === "string") {
         // Extract the documents list (could be comma-separated, bullet points, etc.)
         const documentsSection = documentsCitedMatch[1].trim()
         // Remove the documents cited section from the answer
-        answerText = responseText.replace(/\*\*Documents cited\*\*[\s\n]+.*$/is, "").trim()
+        answerText = responseText.replace(/\*\*Documents cited\*\*[\s\n]+[\s\S]*$/i, "").trim()
         
         // Parse document names - handle various formats (comma-separated, bullet points, etc.)
         policiesChecked = documentsSection
